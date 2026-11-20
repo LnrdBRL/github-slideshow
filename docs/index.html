@@ -80,6 +80,7 @@ input[type=number],select,input[type=text]{font:inherit;padding:7px 10px;border-
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--line)}
 .dot.l1{background:var(--bad)}.dot.l2{background:var(--warn)}.dot.l3{background:var(--good)}
 .hide{display:none!important}
+.soundmsg{margin-top:10px;padding:10px 12px;border:1px solid var(--accent);border-radius:8px;font-size:.92rem;text-align:left;background:var(--accent-soft)}
 .pron{color:var(--muted);font-size:.95rem;margin:2px 0 6px;letter-spacing:.03em}
 .pron b{color:var(--accent);font-weight:400;font-family:"Gentium Book Plus","Noto Serif","Times New Roman",serif}
 .ipa{color:var(--accent);font-family:"Gentium Book Plus","Noto Serif",serif;font-size:1.05rem}
@@ -269,10 +270,18 @@ const sayable=t=>t.split(",")[0].replace(/[⸀⸁⸂⸃⸄⸅⟦⟧\[\]()\-.,·;
 let greekVoice=null;
 function findVoice(){try{const vs=speechSynthesis.getVoices();greekVoice=vs.find(v=>/^el/i.test(v.lang))||null;}catch(e){}return greekVoice;}
 try{findVoice();speechSynthesis.onvoiceschanged=findVoice;}catch(e){}
-function toast(html,ms=6000){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t);}
-  t.innerHTML=html;t.className="show";clearTimeout(t._h);t._h=setTimeout(()=>t.className="",ms);}
+let sayBtn=null; // the 🔊 button last tapped; messages appear right under it
+function toast(html,ms=12000){
+  const host=sayBtn&&sayBtn.isConnected?(sayBtn.closest(".flash,.panel,.card,.row")||sayBtn.parentElement):null;
+  if(!host){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t);}
+    t.innerHTML=html;t.className="show";clearTimeout(t._h);t._h=setTimeout(()=>t.className="",ms);return;}
+  let m=host.querySelector(":scope > .soundmsg");if(!m){m=document.createElement("div");m.className="soundmsg";host.appendChild(m);}
+  m.innerHTML=html;clearTimeout(m._h);m._h=setTimeout(()=>m.remove(),ms);
+}
 let _utt=null; // keep a reference: some browsers drop speech that gets garbage-collected
-function speak(text){
+function speak(text,btn){
+  sayBtn=btn||null;
+  if(btn){const o=btn.dataset.label||btn.innerHTML;btn.dataset.label=o;btn.innerHTML="…";setTimeout(()=>{if(btn.isConnected)btn.innerHTML=o;},1500);}
   try{speakInner(text);}catch(e){toast("Sound is blocked here ("+esc(e&&e.name||"error")+"). "+NO_SOUND_HELP,10000);}
 }
 function speakInner(text){
@@ -362,7 +371,7 @@ function strongsHTML(sn){
 }
 async function hydrate(root){
   root.querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{addCard(b.dataset.add);b.outerHTML=`<span class="tag">added: it's in today's reviews</span>`;});
-  root.querySelectorAll("[data-say]").forEach(b=>b.onclick=()=>speak(b.dataset.say));
+  root.querySelectorAll("[data-say]").forEach(b=>b.onclick=()=>speak(b.dataset.say,b));
   const boxes=[...root.querySelectorAll(".strongs[data-sn]")].filter(b=>b.dataset.sn);
   if(!boxes.length)return;
   try{await loadStrongs();}catch(e){boxes.forEach(b=>b.innerHTML=`<p class="muted small">Couldn't load Strong's (are you offline?).</p>`);return;}
@@ -449,7 +458,7 @@ function viewVocab(){
   <p class="muted small">Grade yourself honestly. "Again" means you didn't get it instantly; the word comes back this session.</p>`;
   bindVocabHead();
   const sh=$("#show"); if(sh)sh.onclick=()=>{revealed=true;viewVocab();};
-  $("#say").onclick=()=>speak(v[0]);
+  $("#say").onclick=e=>speak(v[0],e.currentTarget);
   $("#info").onclick=()=>{dictSel=cur;dictQuery=v[0];go("dict");};
   $("#app").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>grade(+b.dataset.g));
 }
