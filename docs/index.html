@@ -6,7 +6,7 @@
 <title>Koine Greek Trainer</title>
 <meta name="description" content="Learn to read the Greek New Testament: frequency-first vocabulary, form drills, the whole SBLGNT with parsing, and Strong's.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:wght@400;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:wght@400;700&family=Noto+Serif+Hebrew:wght@400;600&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <style>
 :root{
   /* Black and gold: one committed dark look. */
@@ -80,6 +80,15 @@ input[type=number],select,input[type=text]{font:inherit;padding:7px 10px;border-
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--line)}
 .dot.l1{background:var(--bad)}.dot.l2{background:var(--warn)}.dot.l3{background:var(--good)}
 .hide{display:none!important}
+/* Hebrew side: tekhelet blue accent */
+html.he{--accent:#6f9fe6;--accent-soft:#111b2c}
+.hb{font-family:"Noto Serif Hebrew","SBL Hebrew","Ezra SIL","Times New Roman",serif;direction:rtl;unicode-bidi:isolate}
+.logo{gap:1px;direction:ltr}.logo .hb{font-size:1.05em;direction:ltr}
+.lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.lang button{border:0;border-radius:0;padding:6px 14px;background:transparent;font-size:.9rem}
+.lang button.on{background:var(--accent);color:var(--bg)}
+.verse.hb{line-height:2.3}.verse.hb sup{direction:ltr}
+.inter .verse.hb .w{direction:rtl}
 .soundmsg{margin:10px 0;padding:10px 12px;border:1px solid var(--accent);border-radius:8px;font-size:.92rem;text-align:left;background:var(--accent-soft)}
 .pron{color:var(--muted);font-size:.95rem;margin:2px 0 6px;letter-spacing:.03em}
 .pron b{color:var(--accent);font-weight:400;font-family:"Gentium Book Plus","Noto Serif","Times New Roman",serif}
@@ -102,7 +111,8 @@ sup.vnote{color:var(--accent);cursor:pointer}
 <header>
   <div class="wrap">
     <div class="top">
-      <div class="brand"><span class="logo gk" aria-hidden="true">αΩ</span>Koine Trainer</div>
+      <div class="brand"><span class="logo" aria-hidden="true"><span class="hb">א</span><span class="gk">Ω</span></span><span id="brandName">Koine Trainer</span></div>
+      <div class="lang" role="group" aria-label="Language"><button data-lang="gr" class="on">Greek</button><button data-lang="he">Hebrew</button></div>
     </div>
     <nav id="nav"></nav>
   </div>
@@ -124,7 +134,7 @@ function verbTable(id,title,info,drill,prefix,forms,group="Verbs"){
   forms.forEach((f,i)=>cells.push({form:f,label:`${prefix} ${P[i%3]} ${i<3?"sg":"pl"}`,r:i%3,c:i<3?0:1}));
   return {id,title,info,group,drill,rows:P,cols:["Singular","Plural"],cells};
 }
-const PARADIGMS=[
+let PARADIGMS=[
  (()=>{const g=["masc","fem","neut"],F=[["ὁ","τοῦ","τῷ","τόν","οἱ","τῶν","τοῖς","τούς"],["ἡ","τῆς","τῇ","τήν","αἱ","τῶν","ταῖς","τάς"],["τό","τοῦ","τῷ","τό","τά","τῶν","τοῖς","τά"]];
    const cells=[];F.forEach((col,gi)=>col.forEach((f,i)=>cells.push({form:f,label:`${CASES[i%4]} ${i<4?"sg":"pl"} ${g[gi]}`,r:i%4,c:gi+(i<4?0:3)})));
    return {id:"art",title:"The article — ὁ, ἡ, τό",info:"Learn this first. It appears ~19,800 times and tells you the case, number and gender of the noun it goes with.",group:"Article",drill:"art",rows:CASES,cols:["M sg","F sg","N sg","M pl","F pl","N pl"],cells};})(),
@@ -151,7 +161,7 @@ PARADIGMS.filter(p=>["ego","su"].includes(p.id)).forEach(p=>p.group="Pronouns");
    DATA — reader passages (word-by-word parsing)
    [form, lemma, gloss, parsing, note]
    ========================================================= */
-const PASSAGES=[
+let PASSAGES=[
 { id:"jn1", title:"John 1:1–5", translation:{
   1:"In the beginning was the Word, and the Word was with God, and the Word was God.",
   2:"He was in the beginning with God.",
@@ -174,7 +184,7 @@ const PASSAGES=[
 }
 ];
 
-const ALPHABET=[
+let ALPHABET=[
 ["Α α","alpha","a","a in 'father'"],["Β β","beta","b","b"],["Γ γ","gamma","g","hard g; γγ/γκ = 'ng'"],["Δ δ","delta","d","d"],
 ["Ε ε","epsilon","e","short e in 'met'"],["Ζ ζ","zeta","z","dz / z"],["Η η","eta","ē","long e, as in German 'See'"],["Θ θ","theta","th","th in 'think'"],
 ["Ι ι","iota","i","i in 'machine' / 'it'"],["Κ κ","kappa","k","k"],["Λ λ","lambda","l","l"],["Μ μ","mu","m","m"],
@@ -182,13 +192,23 @@ const ALPHABET=[
 ["Ρ ρ","rho","r","rolled r (as in Italian)"],["Σ σ ς","sigma","s","s — ς only at word end"],["Τ τ","tau","t","t"],["Υ υ","upsilon","u / y","German ü"],
 ["Φ φ","phi","ph","f"],["Χ χ","chi","ch","German 'ch' in 'Bach'"],["Ψ ψ","psi","ps","ps in 'lips'"],["Ω ω","omega","ō","long o in 'tone'"]
 ];
-const DIPH=[["αι","ai","'aisle'"],["ει","ei","'eight'"],["οι","oi","'oil'"],["αυ","au","'how' / German 'Haus'"],["ου","ou","'soup'"],["ευ, ηυ","eu","'feud'"],["υι","ui","'suite'"]];
+let DIPH=[["αι","ai","'aisle'"],["ει","ei","'eight'"],["οι","oi","'oil'"],["αυ","au","'how' / German 'Haus'"],["ου","ou","'soup'"],["ευ, ηυ","eu","'feud'"],["υι","ui","'suite'"]];
 
 /* =========================================================
    LEXICON — loaded from data/ (built by tools/build_nt.py)
    lemma row: [lemma, lexical form, gloss, NT count, POS, Strong's #]
    ========================================================= */
 let LEX=[],LEXI={},NT_WORDS=137554,STRONGS=null,BOOKS=[],BOOKDATA={};
+/* Language config: the shared screens read these; he-app.js adds the Hebrew one and switches. */
+let LANG="gr";
+let LG={id:"gr",key:"koine-trainer-v2",cls:"gk",dir:"data/",audio:"audio/",name:"Greek",corpus:"NT",text:"the SBL Greek New Testament",
+  pos:c=>POSN[c]||"",translit:r=>translit(r[0]),sayOf:r=>r[0],defPos:{b:"Jn",c:1},snPrefix:"G",
+  coverNote:"The top 100 words cover about 66%, and the top 320 about 80%.",
+  strongsNone:"No Strong's entry. Strong's (1890) was keyed to the KJV's Greek text, and this word or spelling isn't in it.",
+  dictHint:"Greek, English, transliteration or Strong's # (e.g. G26)",
+  dictTry:'<a href="#" data-q="ἀγάπη">ἀγάπη</a> · <a href="#" data-q="grace">grace</a> · <a href="#" data-q="logos">logos</a> · <a href="#" data-q="G4102">G4102</a>',
+  dictNote:"Glosses: Dodson lexicon (public domain), with hand-checked glosses for the most common words. Strong's Greek Dictionary (1890) via Open Scriptures. Greek can be typed without accents.",
+  views:{}};
 const POSN={"A-":"adjective","C-":"conjunction","D-":"adverb","I-":"interjection","N-":"noun","P-":"preposition","RA":"article","RD":"demonstrative pronoun","RI":"interrogative / indefinite pronoun","RP":"personal pronoun","RR":"relative pronoun","V-":"verb","X-":"particle"};
 const TENSE={P:"present",I:"imperfect",F:"future",A:"aorist",X:"perfect",Y:"pluperfect"},VOICE={A:"active",M:"middle",P:"passive"},
  MOOD={I:"indicative",D:"imperative",S:"subjunctive",O:"optative",N:"infinitive",P:"participle"},CASE={N:"nominative",G:"genitive",D:"dative",A:"accusative",V:"vocative"},
@@ -211,6 +231,7 @@ function parseCode(code,lemma){
   return out.join(", ");
 }
 const short=g=>(g||"").split(/[;]/)[0].replace(/^\((?:act|mid|pl)\.\)\s*/,"").split(",").slice(0,2).join(",").trim();
+const hebBare=s=>s.normalize("NFD").replace(/[\u0591-\u05C7\/]/g,"");
 const bare=s=>s.normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/ς/g,"σ");
 
 /* transliteration (SBL academic style) */
@@ -235,13 +256,13 @@ function translit(w){
 /* =========================================================
    STATE
    ========================================================= */
-const KEY="koine-trainer-v2";
+let KEY="koine-trainer-v2";
 const today=()=>{const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5);};
 const INTERVALS=[0,1,2,4,8,16,32,64,128,256];
 let S=load();
 function load(){
   let s=null; try{s=JSON.parse(localStorage.getItem(KEY));}catch(e){}
-  return Object.assign({cards:{},newPerDay:15,introduced:{},streak:{last:null,count:0},checks:{},drill:{right:0,total:0},reverse:false,alpha:{},pos:{b:"Jn",c:1},hl:false},s||{});
+  return Object.assign({cards:{},newPerDay:15,introduced:{},streak:{last:null,count:0},checks:{},drill:{right:0,total:0},reverse:false,alpha:{},pos:Object.assign({},LG.defPos),hl:false},s||{});
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function touchStreak(){const t=today();if(S.streak.last===t)return;S.streak.count=(S.streak.last===t-1)?S.streak.count+1:1;S.streak.last=t;save();}
@@ -282,12 +303,12 @@ function soundMsg(html){
 function speak(text,btn){
   sayBtn=btn||null;
   document.querySelectorAll(".soundmsg").forEach(m=>m.remove());
-  const ipa=pron(text);if(!ipa||ipa==="//")return;
+  const ipa=pron(text,btn&&btn.dataset.m);if(!ipa||ipa==="//")return;
   const k=audioKey(ipa);
   try{
     if(!player)player=new Audio();
     player.onerror=()=>soundMsg("No recording could be loaded for this word. Check your connection and try again. (In the claude.ai preview there is no audio; it works on the website.)");
-    player.src="audio/"+k.slice(0,2)+"/"+k+".mp3";
+    player.src=LG.audio+k.slice(0,2)+"/"+k+".mp3";
     const pr=player.play();
     if(pr&&pr.catch)pr.catch(e=>{if(e&&e.name==="NotAllowedError")soundMsg("Your browser blocked the sound. Tap 🔊 once more.");});
   }catch(e){soundMsg("This browser can't play audio.");}
@@ -322,17 +343,17 @@ function pron(word){
   const st=sylls.length>1?sylls.findIndex(sy=>sy.some(u=>u.acc)):-1;
   return "/"+parts.map((t,i)=>(i===st?"ˈ":i>0?".":"")+t).join("")+"/";
 }
-function sayRow(form,size){return `<div class="row" style="align-items:center;gap:12px"><span class="gk" style="font-size:${size||"1.6rem"}">${esc(form)}</span>
-  <button class="say" data-say="${esc(form)}" aria-label="Play pronunciation">🔊</button></div>
-  <div class="pron"><b>${esc(pron(form))}</b></div>`;}
+function sayRow(form,size,morph){return `<div class="row" style="align-items:center;gap:12px"><span class="${LG.cls}" style="font-size:${size||"1.6rem"}">${esc(LG.show?LG.show(form):form)}</span>
+  <button class="say" data-say="${esc(form)}" data-m="${esc(morph||"")}" aria-label="Play pronunciation">🔊</button></div>
+  <div class="pron"><b>${esc(pron(form,morph))}</b></div>`;}
 async function getJSON(p){const r=await fetch(p);if(!r.ok)throw new Error(p+" "+r.status);return r.json();}
-async function loadStrongs(){if(!STRONGS){STRONGS=await getJSON("data/strongs.json");}return STRONGS;}
+async function loadStrongs(){if(!STRONGS){STRONGS=await getJSON(LG.dir+"strongs.json");}return STRONGS;}
 const TABS=[["today","Today"],["alpha","Alphabet"],["vocab","Vocab"],["forms","Forms"],["read","Read"],["dict","Dictionary"],["method","Method"]];
 let tab="today";
 function nav(){$("#nav").innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?"on":""}" data-tab="${k}">${l}</button>`).join("");}
 $("#nav").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)go(b.dataset.tab);});
 function go(t){tab=t;render();window.scrollTo(0,0);}
-function render(){nav();({today:viewToday,vocab:viewVocab,forms:viewForms,read:viewRead,dict:viewDict,alpha:viewAlpha,method:viewMethod})[tab]();}
+function render(){nav();Object.assign({today:viewToday,vocab:viewVocab,forms:viewForms,read:viewRead,dict:viewDict,alpha:viewAlpha,method:viewMethod},LG.views)[tab]();}
 
 
 /* Shared word-info card (reader + dictionary). Strong's loads lazily. */
@@ -341,17 +362,17 @@ function wordCard(lemma,extra){
   const r=LEX[i],c=S.cards[lemma];
   const status=!c?`<button class="small" data-add="${esc(lemma)}">+ Add to my reviews</button>`:`<span class="tag">${c.box>=3?"solid":"learning"} · in your reviews</span>`;
   return `${extra||""}
-   <div class="row" style="justify-content:space-between;align-items:baseline"><span class="gk" style="font-size:1.5rem">${esc(r[1])}</span><span class="muted small">${esc(translit(lemma))}</span></div>
-   <div class="pron"><b>${esc(pron(lemma))}</b></div>
+   <div class="row" style="justify-content:space-between;align-items:baseline"><span class="${LG.cls}" style="font-size:1.5rem">${esc(r[1])}</span><span class="muted small">${esc(LG.translit(r))}</span></div>
+   <div class="pron"><b>${esc(pron(LG.sayOf(r)))}</b></div>
    <div style="margin:4px 0"><b>${esc(r[2]||"(no short gloss; see Strong's below)")}</b></div>
-   <div class="muted small">${POSN[r[4]]||""} · ${r[3].toLocaleString()}× in NT · frequency rank #${i+1}</div>
-   <div class="row" style="margin-top:8px">${status}<button class="ghost small" data-say="${esc(lemma)}">🔊</button></div>
-   <div class="strongs" data-sn="${r[5]}">${r[5]?`<p class="muted small">Loading Strong's ${r[5]}…</p>`:`<p class="muted small">No Strong's entry. Strong's (1890) was keyed to the KJV's Greek text, and this word or spelling isn't in it.</p>`}</div>`;
+   <div class="muted small">${LG.pos(r[4])} · ${r[3].toLocaleString()}× in ${LG.corpus} · frequency rank #${i+1}</div>
+   <div class="row" style="margin-top:8px">${status}<button class="ghost small" data-say="${esc(LG.sayOf(r))}">🔊</button></div>
+   <div class="strongs" data-sn="${r[5]}">${r[5]?`<p class="muted small">Loading Strong's ${r[5]}…</p>`:`<p class="muted small">${LG.strongsNone}</p>`}</div>`;
 }
 function strongsHTML(sn){
   const e=STRONGS[sn];if(!e)return "";
-  const link=s=>esc(s).replace(/G(\d+)/g,(m)=>`<a href="#" data-sn-link="${m}">${m}</a>`);
-  return `<div class="sbox"><div class="row" style="justify-content:space-between"><b>Strong's ${sn}</b><span class="gk">${esc(e[0])}</span></div>
+  const link=s=>esc(s).replace(/[GH](\d+)/g,(m)=>`<a href="#" data-sn-link="${m}">${m}</a>`);
+  return `<div class="sbox"><div class="row" style="justify-content:space-between"><b>Strong's ${sn}</b><span class="${LG.cls}">${esc(e[0])}</span></div>
    <div class="small muted">${esc(e[1])}</div>
    ${(e[4]||e[2])?`<p class="small" style="margin:6px 0">${link([e[4],e[2]].filter(Boolean).join(" ").replace(/\s+/g," ").trim())}</p>`:""}
    ${e[3]?`<p class="small" style="margin:6px 0"><b>KJV renderings:</b> ${esc(e[3])} <span class="muted">(how the KJV translators rendered this word, not a definition)</span></p>`:""}</div>`;
@@ -380,10 +401,10 @@ function viewToday(){
   const t=today(),ch=S.checks[t]||{},ak=alphaKnown();
   const due=dueList().length,nw=newAvailable().length,started=Object.keys(S.cards).length,sol=Object.keys(S.cards).filter(solid).length;
   const cov=coverage(),cov2=coverage(0),acc=S.drill.total?Math.round(S.drill.right/S.drill.total*100):0;
-  const alphaStep=ak<24?`<div class="card" style="border-color:var(--accent)">
+  const alphaStep=ak<ALPHABET.length?`<div class="card" style="border-color:var(--accent)">
      <b>Step 1: learn the alphabet first (2–3 days)</b>
      <p class="small" style="margin:6px 0">You can't learn words you can't read, so start here. Take 15 minutes a day on the Alphabet tab: a letter counts as learned after you get it right ${ALPHA_DONE} times in a row. Then move to the "Sound it out" drill on real words.</p>
-     <div class="bar"><i style="width:${ak/24*100}%"></i></div><p class="muted small" style="margin:6px 0 10px">${ak} / 24 letters learned</p>
+     ${LG.alphaNote||""}<div class="bar"><i style="width:${ak/ALPHABET.length*100}%"></i></div><p class="muted small" style="margin:6px 0 10px">${ak} / ${ALPHABET.length} letters learned</p>
      <button class="primary" data-go="alpha">Go to Alphabet →</button></div>`:"";
   $("#app").innerHTML=`
   <h2>Today's session <span class="muted small">· about 45 min</span></h2>
@@ -395,9 +416,9 @@ function viewToday(){
     <div class="stat"><span class="muted small">Streak</span><b>${S.streak.last>=t-1?S.streak.count:0} 🔥</b></div>
   </div>
   <div class="card" style="margin-top:14px">
-    <div class="row" style="justify-content:space-between"><b>NT coverage</b><span class="muted small">${cov.toFixed(1)}% solid · ${cov2.toFixed(1)}% started</span></div>
+    <div class="row" style="justify-content:space-between"><b>${LG.corpus} coverage</b><span class="muted small">${cov.toFixed(1)}% solid · ${cov2.toFixed(1)}% started</span></div>
     <div class="bar" style="margin-top:8px"><i style="width:${Math.min(100,cov)}%"></i></div>
-    <p class="muted small" style="margin:8px 0 0">The share of all ${NT_WORDS.toLocaleString()} words in the Greek NT that your solid vocabulary accounts for. The top 100 words cover about 66%, and the top 320 about 80%.</p>
+    <p class="muted small" style="margin:8px 0 0">The share of the ${NT_WORDS.toLocaleString()} words in ${LG.text} that your solid vocabulary accounts for. ${LG.coverNote}</p>
   </div>
   <div class="card"><b>Today's tasks</b>
     ${MISSION.map(([k,a,b])=>`<label class="check"><input type="checkbox" data-chk="${k}" ${ch[k]?"checked":""}><span><b>${a}</b><br><span class="muted small">${b}</span></span></label>`).join("")}
@@ -417,7 +438,7 @@ function viewVocab(){
   if(!queue.length&&cur===null){buildQueue();cur=queue.shift();revealed=false;}
   else if(cur===null){cur=queue.shift();revealed=false;}
   const head=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Vocabulary</h2>
-    <div class="row"><button class="small ${S.reverse?"on":""}" id="rev">${S.reverse?"English → Greek":"Greek → English"}</button><button class="small" id="lst">Word list</button></div></div>`;
+    <div class="row"><button class="small ${S.reverse?"on":""}" id="rev">${S.reverse?"English → "+LG.name:LG.name+" → English"}</button><button class="small" id="lst">Word list</button></div></div>`;
   if(cur===undefined){
     $("#app").innerHTML=head+`<div class="card flash"><div style="font-size:2rem">✓</div><b>Done for today.</b><p class="muted">No reviews due and today's new words are in. Go and read a passage, or raise the daily limit.</p>
     <div class="row" style="justify-content:center">New words per day <input type="number" id="npd" min="0" max="60" value="${S.newPerDay}" style="width:80px"><button id="more">Save</button></div></div>`;
@@ -426,12 +447,12 @@ function viewVocab(){
     return;
   }
   const i=LEXI[cur],v=LEX[i],c=S.cards[cur],isNew=!c||c.reps===0;
-  const front=S.reverse?`<div class="gloss">${esc(v[2])}</div><div class="muted small" style="margin-top:6px">${POSN[v[4]]||""}</div>`:`<div class="big gk">${esc(v[1])}</div>`;
-  const back=S.reverse?`<div class="big gk" style="margin-top:14px">${esc(v[1])}</div><div class="pron"><b>${esc(pron(v[0]))}</b></div>`:`<div class="gloss">${esc(v[2])}</div><div class="pron"><b>${esc(pron(v[0]))}</b> · ${POSN[v[4]]||""}</div>`;
+  const front=S.reverse?`<div class="gloss">${esc(v[2])}</div><div class="muted small" style="margin-top:6px">${LG.pos(v[4])}</div>`:`<div class="big ${LG.cls}">${esc(v[1])}</div>`;
+  const back=S.reverse?`<div class="big ${LG.cls}" style="margin-top:14px">${esc(v[1])}</div><div class="pron"><b>${esc(pron(LG.sayOf(v)))}</b></div>`:`<div class="gloss">${esc(v[2])}</div><div class="pron"><b>${esc(pron(LG.sayOf(v)))}</b> · ${LG.pos(v[4])}</div>`;
   $("#app").innerHTML=head+`
   <div class="card flash">
     <div class="row" style="justify-content:center;gap:6px;margin-bottom:14px">
-      <span class="tag">${isNew?"NEW":"review"}</span><span class="tag">×${v[3].toLocaleString()} in NT</span><span class="tag">#${i+1}</span>${v[5]?`<span class="tag">${v[5]}</span>`:""}
+      <span class="tag">${isNew?"NEW":"review"}</span><span class="tag">×${v[3].toLocaleString()} in ${LG.corpus}</span><span class="tag">#${i+1}</span>${v[5]?`<span class="tag">${v[5]}</span>`:""}
     </div>
     ${front}
     <div class="${revealed?"":"hide"}">${back}</div>
@@ -445,8 +466,8 @@ function viewVocab(){
   <p class="muted small">Grade yourself honestly. "Again" means you didn't get it instantly; the word comes back this session.</p>`;
   bindVocabHead();
   const sh=$("#show"); if(sh)sh.onclick=()=>{revealed=true;viewVocab();};
-  $("#say").onclick=e=>speak(v[0],e.currentTarget);
-  $("#info").onclick=()=>{dictSel=cur;dictQuery=v[0];go("dict");};
+  $("#say").onclick=e=>speak(LG.sayOf(v),e.currentTarget);
+  $("#info").onclick=()=>{dictSel=cur;dictQuery=v[1].split(",")[0];go("dict");};
   $("#app").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>grade(+b.dataset.g));
 }
 function bindVocabHead(){
@@ -470,20 +491,20 @@ document.addEventListener("keydown",e=>{
 function viewVocabList(){
   let cum=0;const rows=[];
   LEX.forEach((v,i)=>{cum+=v[3];if(i>=listN)return;const c=S.cards[v[0]];const lvl=!c?"":c.box>=3?"l3":c.box>=1?"l2":"l1";
-    rows.push(`<tr data-l="${esc(v[0])}"><td class="muted">${i+1}</td><td class="gk" style="font-size:1.1rem"><span class="dot ${lvl}"></span>${esc(v[1])}</td><td>${esc(v[2])}</td><td class="muted">${v[3].toLocaleString()}</td><td class="muted">${(cum/NT_WORDS*100).toFixed(1)}%</td></tr>`);});
-  $("#app").innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Every NT word, by frequency</h2><button class="small" id="back">← Study</button></div>
+    rows.push(`<tr data-l="${esc(v[0])}"><td class="muted">${i+1}</td><td class="${LG.cls}" style="font-size:1.1rem"><span class="dot ${lvl}"></span>${esc(v[1])}</td><td>${esc(v[2])}</td><td class="muted">${v[3].toLocaleString()}</td><td class="muted">${(cum/NT_WORDS*100).toFixed(1)}%</td></tr>`);});
+  $("#app").innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Every ${LG.corpus} word, by frequency</h2><button class="small" id="back">← Study</button></div>
   <div class="card small"><span class="dot l3"></span>solid <span class="dot l2" style="margin-left:12px"></span>learning <span class="dot l1" style="margin-left:12px"></span>new/lapsed <span class="dot" style="margin-left:12px"></span>not started
   <div class="row" style="margin-top:12px">
     <button class="small" id="exp">Export progress</button>
     <label class="small"><input type="file" id="imp" accept=".json" class="hide"><span style="cursor:pointer;text-decoration:underline">Import progress</span></label>
     <span class="muted">Progress is saved in this browser only. Export it now and then as a backup.</span></div></div>
-  <div class="tablewrap"><table class="list"><thead><tr><th>#</th><th>Greek</th><th>Meaning</th><th>NT ×</th><th>Cumulative</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
+  <div class="tablewrap"><table class="list"><thead><tr><th>#</th><th>${LG.name}</th><th>Meaning</th><th>${LG.corpus} ×</th><th>Cumulative</th></tr></thead><tbody>${rows.join("")}</tbody></table></div>
   ${listN<LEX.length?`<button id="moreRows" style="margin-top:10px">Show more (${LEX.length-listN} left)</button>`:""}
-  <p class="muted small">${LEX.length.toLocaleString()} dictionary forms · exact counts from the SBL Greek New Testament. Tap a row for its full entry.</p>`;
+  <p class="muted small">${LEX.length.toLocaleString()} dictionary forms · exact counts from ${LG.text}. Tap a row for its full entry.</p>`;
   $("#back").onclick=()=>{vocabMode="study";viewVocab();};
   const m=$("#moreRows");if(m)m.onclick=()=>{listN+=500;viewVocabList();};
   $("#app").querySelectorAll("tr[data-l]").forEach(r=>r.onclick=()=>{dictSel=r.dataset.l;dictQuery=r.dataset.l;go("dict");});
-  $("#exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="koine-progress.json";a.click();};
+  $("#exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download=LG.id==="he"?"hebrew-progress.json":"koine-progress.json";a.click();};
   $("#imp").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{S=Object.assign(load(),JSON.parse(t));save();alert("Progress imported.");viewVocabList();}catch(err){alert("That file could not be read.");}});};
 }
 
@@ -494,7 +515,7 @@ let formSel="art",drillQ=null,drillMode="drill",streakRun=0;
 function tableHTML(p,hl){
   const grid=p.rows.map(()=>p.cols.map(()=>""));p.cells.forEach(c=>grid[c.r][c.c]=c);
   return `<div class="tablewrap"><table><thead><tr><th></th>${p.cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${
-    p.rows.map((r,ri)=>`<tr><th>${r}</th>${grid[ri].map(c=>`<td class="gk ${c&&hl&&hl.includes(c.label)?"hl":""}">${c?esc(c.form):""}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    p.rows.map((r,ri)=>`<tr><th>${r}</th>${grid[ri].map(c=>`<td class="${LG.cls} ${c&&hl&&hl.includes(c.label)?"hl":""}">${c?esc(c.form):""}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function newQ(){
   const p0=PARADIGMS.find(x=>x.id===formSel),pool=PARADIGMS.filter(x=>x.drill===p0.drill),all=pool.flatMap(p=>p.cells.map(c=>Object.assign({p},c)));
@@ -509,13 +530,13 @@ function viewForms(){
   const p=PARADIGMS.find(x=>x.id===formSel),groups=[...new Set(PARADIGMS.map(x=>x.group))];
   const sel=`<select id="fsel">${groups.map(g=>`<optgroup label="${g}">${PARADIGMS.filter(x=>x.group===g).map(x=>`<option value="${x.id}" ${x.id===formSel?"selected":""}>${esc(x.title)}</option>`).join("")}</optgroup>`).join("")}</select>`;
   let body="";
-  if(drillMode==="study")body=`<div class="card"><h3 style="margin-top:0">${esc(p.title)}</h3><p class="muted">${esc(p.info)}</p>${tableHTML(p)}</div>`;
+  if(drillMode==="study")body=`<div class="card"><h3 style="margin-top:0">${LG.bidi?LG.bidi(esc(p.title)):esc(p.title)}</h3><p class="muted">${LG.bidi?LG.bidi(esc(p.info)):esc(p.info)}</p>${tableHTML(p)}</div>`;
   else{
     if(!drillQ||drillQ.poolId!==p.drill)newQ();
     const d=drillQ;
     body=`<div class="card flash">
-      <div class="muted small">Parse this form ${d.q.p.drill==="verb"?"(the verb is λύω)":"("+esc(d.q.p.title.split("—").pop().trim())+")"}</div>
-      <div class="big gk" style="margin-top:8px">${esc(d.q.form)}</div>
+      <div class="muted small">Parse this form ${d.q.p.note?"("+esc(d.q.p.note)+")":d.q.p.drill==="verb"?"(the verb is λύω)":"("+esc(d.q.p.title.split("—").pop().trim())+")"}</div>
+      <div class="big ${LG.cls}" style="margin-top:8px">${esc(d.q.form)}</div>
       <div class="opts">${d.opts.map(o=>`<button data-o="${esc(o)}" class="${d.answered?(d.valid.includes(o)?"right":(o===d.answered?"wrong":"")):""}">${esc(o)}</button>`).join("")}</div>
       ${d.answered?`<div style="margin-top:16px">${d.valid.includes(d.answered)?`<b style="color:var(--good)">Correct</b>`:`<b style="color:var(--bad)">Not quite.</b> It's <b>${esc(d.valid.join(" or "))}</b>`}
         ${d.valid.length>1?`<p class="muted small">This form is ambiguous; in a real text the context decides.</p>`:""}
@@ -551,7 +572,7 @@ const VNOTES={
 };
 for(let k=1;k<=11;k++)VNOTES["Jn 8:"+k]=VNOTES["Jn 7:53"];
 const VMARK_NOTE="Textual variant: manuscripts differ at this word or phrase. The SBLGNT marks it with a sign in its apparatus (removed here for easier reading).";
-async function getBook(b){if(!BOOKDATA[b])BOOKDATA[b]=await getJSON(`data/${b}.json`);return BOOKDATA[b];}
+async function getBook(b){if(!BOOKDATA[b])BOOKDATA[b]=await getJSON(`${LG.dir}${b}.json`);return BOOKDATA[b];}
 function viewRead(){
   const modeBar=`<div class="row" style="margin-bottom:12px"><button class="small ${readMode==="nt"?"on":""}" id="mNT">Whole New Testament</button><button class="small ${readMode==="guided"?"on":""}" id="mG">Guided passages</button></div>`;
   if(readMode==="guided")return viewGuided(modeBar);
@@ -633,9 +654,9 @@ function viewGuided(modeBar){
 let dictQuery="",dictSel=null;
 async function viewDict(){
   $("#app").innerHTML=`<h2>Dictionary</h2>
-   <input type="text" id="dq" placeholder="Greek, English, transliteration or Strong's # (e.g. G26)" value="${esc(dictQuery)}" style="width:100%" autocomplete="off">
+   <input type="text" id="dq" placeholder="${LG.dictHint}" value="${esc(dictQuery)}" style="width:100%" autocomplete="off">
    <div id="dres" style="margin-top:12px"></div>
-   <p class="muted small">Every word of the Greek NT (${LEX.length.toLocaleString()} dictionary forms). Glosses: Dodson lexicon (public domain), with hand-checked glosses for the most common words. Strong's Greek Dictionary (1890) via Open Scriptures. Greek can be typed without accents.</p>`;
+   <p class="muted small">Every word of ${LG.text} (${LEX.length.toLocaleString()} dictionary forms). ${LG.dictNote}</p>`;
   const inp=$("#dq");inp.oninput=()=>{dictQuery=inp.value;dictSel=null;showResults();};
   if(!dictQuery)inp.focus();
   showResults();
@@ -644,20 +665,21 @@ async function showResults(){
   const box=$("#dres"),q=dictQuery.trim();
   if(dictSel){box.innerHTML=`<button class="small" id="backR">← Results</button><div class="card" style="margin-top:10px">${wordCard(dictSel)}</div>`;
     $("#backR").onclick=()=>{dictSel=null;showResults();};hydrate(box);return;}
-  if(!q){box.innerHTML=`<p class="muted">Try: <a href="#" data-q="ἀγάπη">ἀγάπη</a> · <a href="#" data-q="grace">grace</a> · <a href="#" data-q="logos">logos</a> · <a href="#" data-q="G4102">G4102</a></p>`;}
+  if(!q){box.innerHTML=`<p class="muted">Try: ${LG.dictTry}</p>`;}
   else{
     let hits=[];
-    const gm=q.match(/^g?(\d{1,4})$/i);
-    if(gm){const sn="G"+(+gm[1]);hits=LEX.filter(r=>r[5]===sn);
+    const gm=q.match(/^[gh]?(\d{1,4})$/i);
+    if(gm){const sn=LG.snPrefix+(+gm[1]);hits=LEX.filter(r=>r[5]===sn);
       if(!hits.length){try{await loadStrongs();}catch(e){}
-        if(STRONGS&&STRONGS[sn]){box.innerHTML=`<div class="card">${strongsHTML(sn)}<p class="muted small">This Strong's number isn't used in the SBL Greek NT. It may be a variant reading or a different spelling of the word.</p></div>`;hydrate(box);return;}}}
+        if(STRONGS&&STRONGS[sn]){box.innerHTML=`<div class="card">${strongsHTML(sn)}<p class="muted small">This Strong's number isn't used in ${LG.text}. It may be a variant reading or a different spelling of the word.</p></div>`;hydrate(box);return;}}}
+    else if(/[\u0590-\u05ff]/.test(q)){const b=hebBare(q);hits=LEX.filter(r=>hebBare(r[1]).startsWith(b));}
     else if(/[\u0370-\u03ff\u1f00-\u1fff]/.test(q)){const b=bare(q);hits=LEX.filter(r=>bare(r[0]).startsWith(b)||bare(r[1]).startsWith(b));}
     else{const ql=q.toLowerCase(),tq=bare(ql).replace(/[āēīōū]/g,m=>bare(m));
-      const tr=LEX.filter(r=>bare(translit(r[0])).replace(/ē/g,"e").replace(/ō/g,"o").startsWith(tq));
+      const tr=LG.id==="he"?[]:LEX.filter(r=>bare(translit(r[0])).replace(/ē/g,"e").replace(/ō/g,"o").startsWith(tq));
       const en=LEX.filter(r=>new RegExp("\\b"+ql.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"),"i").test(r[2]));
       hits=[...new Set([...tr,...en])];}
     hits.sort((a,b)=>b[3]-a[3]);
-    box.innerHTML=hits.length?`<div class="tablewrap"><table class="list"><tbody>${hits.slice(0,60).map(r=>`<tr data-l="${esc(r[0])}" style="cursor:pointer"><td class="gk" style="font-size:1.1rem">${esc(r[1])}</td><td>${esc(r[2])}</td><td class="muted small">${r[3]}×</td><td class="muted small">${r[5]||""}</td></tr>`).join("")}</tbody></table></div>
+    box.innerHTML=hits.length?`<div class="tablewrap"><table class="list"><tbody>${hits.slice(0,60).map(r=>`<tr data-l="${esc(r[0])}" style="cursor:pointer"><td class="${LG.cls}" style="font-size:1.1rem">${esc(r[1])}</td><td>${esc(r[2])}</td><td class="muted small">${r[3]}×</td><td class="muted small">${r[5]||""}</td></tr>`).join("")}</tbody></table></div>
       ${hits.length>60?`<p class="muted small">Showing the 60 most frequent of ${hits.length} matches.</p>`:""}`:`<p class="muted">No matches.</p>`;
   }
   box.querySelectorAll("[data-l]").forEach(r=>r.onclick=()=>{dictSel=r.dataset.l;showResults();});
@@ -741,17 +763,19 @@ function viewMethod(){
 /* =========================================================
    BOOT
    ========================================================= */
-(async function(){
+/* he-app.js calls boot() once both scripts are loaded */
+async function loadLexicon(){
+  const [lx,bk]=await Promise.all([getJSON(LG.dir+"lemmas.json"),getJSON(LG.dir+"books.json")]);
+  LEX=lx.lemmas;NT_WORDS=lx.total;BOOKS=bk;LEXI={};LEX.forEach((r,i)=>LEXI[r[0]]=i);
+}
+async function boot(){
   $("#app").innerHTML=`<p class="muted">Loading the lexicon…</p>`;
-  try{
-    const [lx,bk]=await Promise.all([getJSON("data/lemmas.json"),getJSON("data/books.json")]);
-    LEX=lx.lemmas;NT_WORDS=lx.total;BOOKS=bk;LEX.forEach((r,i)=>LEXI[r[0]]=i);
-    render();
-  }catch(e){
-    $("#app").innerHTML=`<div class="card"><b>Couldn't load the data files.</b><p class="muted">If you opened index.html directly from your computer, it has to be served from a web server instead (it works on the website).</p></div>`;
-  }
-})();
+  try{await loadLexicon();render();}
+  catch(e){$("#app").innerHTML=`<div class="card"><b>Couldn't load the data files.</b><p class="muted">If you opened index.html directly from your computer, it has to be served from a web server instead (it works on the website).</p></div>`;}
+}
 
 </script>
+<script src="he.js"></script>
+<script src="he-app.js"></script>
 </body>
 </html>
