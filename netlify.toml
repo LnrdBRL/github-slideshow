@@ -1,0 +1,4 @@
+# Serve the Koine Greek trainer as static files from /docs (no build step).
+[build]
+  publish = "docs"
+  command = "echo 'static site, no build'"
