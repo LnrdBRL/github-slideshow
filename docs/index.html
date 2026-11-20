@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Koine Greek Trainer</title>
+<meta name="description" content="Frequency-first, spaced-repetition trainer for reading the Greek New Testament.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gentium+Book+Plus:wght@400;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f4ee; --card:#fffdf8; --ink:#1f1b16; --muted:#6d6457; --line:#e3dccf;
+  --accent:#7a2e1d; --accent-soft:#f3e4dc; --good:#2f6b3a; --bad:#a3262a; --warn:#9a6a00;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16130f; --card:#211d18; --ink:#efe8dc; --muted:#a89d8c; --line:#3a332a;
+    --accent:#e0906f; --accent-soft:#3a251d; --good:#7cc287; --bad:#ef7b7e; --warn:#e2b44d;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16130f; --card:#211d18; --ink:#efe8dc; --muted:#a89d8c; --line:#3a332a;
+  --accent:#e0906f; --accent-soft:#3a251d; --good:#7cc287; --bad:#ef7b7e; --warn:#e2b44d;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif}
+.gk{font-family:"Gentium Book Plus","Noto Serif",serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+.top{display:flex;align-items:center;justify-content:space-between;padding:12px 0 6px}
+.brand{font-weight:600;letter-spacing:.02em}
+.brand .gk{font-size:1.3em;color:var(--accent);margin-right:6px}
+nav{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+nav button{flex:none}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 14px}
+button:hover{border-color:var(--accent)}
+button.on,button.primary{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+button.ghost{background:transparent}
+main{padding:20px 0 80px}
+h2{margin:.2em 0 .6em;font-size:1.35rem}
+h3{margin:1.2em 0 .4em;font-size:1.05rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+.muted{color:var(--muted)}
+.small{font-size:.875rem}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat b{display:block;font-size:1.6rem}
+.bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.check{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line)}
+.check:last-child{border:0}
+.check input{margin-top:4px;width:18px;height:18px;accent-color:var(--accent)}
+.flash{text-align:center;padding:28px 16px}
+.flash .big{font-size:2.6rem;line-height:1.2}
+.flash .gloss{font-size:1.25rem;margin-top:14px}
+.tag{display:inline-block;font-size:.75rem;padding:2px 8px;border-radius:20px;background:var(--accent-soft);color:var(--accent)}
+.answers{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:18px}
+.answers button{padding:12px 6px}
+.a-again{border-color:var(--bad)!important;color:var(--bad)}
+.a-good{border-color:var(--good)!important;color:var(--good)}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.opts button{padding:12px}
+.opts button.right{background:var(--good);color:var(--bg);border-color:var(--good)}
+.opts button.wrong{background:var(--bad);color:var(--bg);border-color:var(--bad)}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+th{background:var(--accent-soft);font-weight:600}
+td.gk{font-size:1.15rem}
+td.hl{background:var(--accent);color:var(--bg)}
+.tablewrap{overflow-x:auto}
+.verse{font-size:1.45rem;line-height:2.1;margin:8px 0}
+.verse sup{font-family:Inter,sans-serif;font-size:.7rem;color:var(--muted);margin-right:4px}
+.w{cursor:pointer;border-radius:5px;padding:0 2px;display:inline-block}
+.w:hover,.w.sel{background:var(--accent-soft)}
+.inter .w{display:inline-flex;flex-direction:column;align-items:center;margin:0 4px 10px;vertical-align:top;line-height:1.3}
+.inter .w small{font-family:Inter,sans-serif;font-size:.7rem;color:var(--muted);max-width:110px;text-align:center}
+.w small{display:none}.inter .w small{display:block}
+.panel{position:sticky;bottom:12px;margin-top:14px;border-color:var(--accent)}
+.letters{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+.letter{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.letter .gk{font-size:2rem}
+input[type=number],select,input[type=text]{font:inherit;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.list td{vertical-align:top}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--line)}
+.dot.l1{background:var(--bad)}.dot.l2{background:var(--warn)}.dot.l3{background:var(--good)}
+.hide{display:none!important}
+@media (max-width:560px){
+  .answers{grid-template-columns:1fr 1fr}
+  .opts{grid-template-columns:1fr}
+  .flash .big{font-size:2.1rem}
+  .verse{font-size:1.25rem}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="top">
+      <div class="brand"><span class="gk">Λόγος</span>Koine Trainer</div>
+      <button class="ghost small" id="themeBtn" title="Toggle theme">◐</button>
+    </div>
+    <nav id="nav"></nav>
+  </div>
+</header>
+<main class="wrap" id="app"></main>
+
+<script>
+/* =========================================================
+   DATA — vocabulary (NT frequency order, counts approximate,
+   following the standard Mounce/BDAG-style frequency lists)
+   [lexical form, gloss, ~NT occurrences, part of speech]
+   ========================================================= */
+const VOCAB = [
+["ὁ, ἡ, τό","the",19867,"article"],
+["καί","and, even, also",9161,"conj"],
+["αὐτός, -ή, -ό","he, she, it; self, same",5597,"pron"],
+["σύ","you (sg)",2907,"pron"],
+["δέ","but, and",2792,"conj"],
+["ἐν","in, on, among (+dat)",2752,"prep"],
+["ἐγώ","I",2666,"pron"],
+["εἰμί","I am, exist",2462,"verb"],
+["λέγω","I say, speak",2354,"verb"],
+["εἰς","into, in, to (+acc)",1767,"prep"],
+["οὐ, οὐκ, οὐχ","not",1623,"adv"],
+["ὅς, ἥ, ὅ","who, which, what (relative)",1407,"pron"],
+["οὗτος, αὕτη, τοῦτο","this; this one",1387,"pron"],
+["θεός, -οῦ, ὁ","God, god",1317,"noun"],
+["ὅτι","that, because",1296,"conj"],
+["πᾶς, πᾶσα, πᾶν","every, all",1243,"adj"],
+["μή","not, lest",1042,"adv"],
+["γάρ","for, then",1041,"conj"],
+["Ἰησοῦς, -οῦ, ὁ","Jesus, Joshua",917,"noun"],
+["ἐκ, ἐξ","from, out of (+gen)",914,"prep"],
+["ἐπί","on, over (+gen); on, at (+dat); on, to, against (+acc)",890,"prep"],
+["κύριος, -ου, ὁ","Lord, lord, master, sir",717,"noun"],
+["ἔχω","I have, hold",708,"verb"],
+["πρός","to, toward, with (+acc)",700,"prep"],
+["γίνομαι","I become, am, exist, happen",669,"verb"],
+["διά","through (+gen); on account of (+acc)",667,"prep"],
+["ἵνα","in order that, so that, that",663,"conj"],
+["ἀπό","from, away from (+gen)",646,"prep"],
+["ἀλλά","but, yet, except",638,"conj"],
+["ἔρχομαι","I come, go",632,"verb"],
+["ποιέω","I do, make",568,"verb"],
+["τίς, τί","who? what? which? why?",555,"pron"],
+["ἄνθρωπος, -ου, ὁ","man, person, human being",550,"noun"],
+["τις, τι","someone, something, a certain one",543,"pron"],
+["Χριστός, -οῦ, ὁ","Christ, Messiah, Anointed One",529,"noun"],
+["ὡς","as, like, when, about",504,"adv"],
+["εἰ","if",502,"conj"],
+["οὖν","therefore, then, so",499,"conj"],
+["κατά","down from, against (+gen); according to (+acc)",473,"prep"],
+["μετά","with (+gen); after (+acc)",469,"prep"],
+["ὁράω","I see, notice",454,"verb"],
+["ἀκούω","I hear, obey, understand",428,"verb"],
+["πολύς, πολλή, πολύ","much, many",416,"adj"],
+["δίδωμι","I give",415,"verb"],
+["πατήρ, πατρός, ὁ","father",413,"noun"],
+["ἡμέρα, -ας, ἡ","day",389,"noun"],
+["πνεῦμα, -ατος, τό","spirit, Spirit, wind, breath",379,"noun"],
+["υἱός, -οῦ, ὁ","son",377,"noun"],
+["ἐάν","if, when",351,"conj"],
+["εἷς, μία, ἕν","one",345,"adj"],
+["ἀδελφός, -οῦ, ὁ","brother",343,"noun"],
+["ἤ","or, than",343,"conj"],
+["περί","concerning, about (+gen); around (+acc)",333,"prep"],
+["λόγος, -ου, ὁ","word, message, statement",330,"noun"],
+["ἑαυτοῦ, -ῆς, -οῦ","himself, herself, itself",319,"pron"],
+["οἶδα","I know, understand",318,"verb"],
+["λαλέω","I speak, say",296,"verb"],
+["οὐρανός, -οῦ, ὁ","heaven, sky",273,"noun"],
+["ἐκεῖνος, -η, -ο","that; that one",265,"pron"],
+["μαθητής, -οῦ, ὁ","disciple",261,"noun"],
+["λαμβάνω","I take, receive",258,"verb"],
+["γῆ, γῆς, ἡ","earth, land, region",250,"noun"],
+["μέγας, μεγάλη, μέγα","large, great",243,"adj"],
+["πίστις, -εως, ἡ","faith, belief, trust",243,"noun"],
+["πιστεύω","I believe, have faith in, trust",241,"verb"],
+["οὐδείς, οὐδεμία, οὐδέν","no one, nothing",234,"adj"],
+["ἅγιος, -α, -ον","holy; (pl. noun) saints",233,"adj"],
+["ἀποκρίνομαι","I answer",231,"verb"],
+["ὄνομα, -ατος, τό","name, reputation",231,"noun"],
+["γινώσκω","I know, come to know, realize",222,"verb"],
+["ὑπό","by (+gen); under (+acc)",220,"prep"],
+["ἐξέρχομαι","I go out",218,"verb"],
+["ἀνήρ, ἀνδρός, ὁ","man, male, husband",216,"noun"],
+["γυνή, γυναικός, ἡ","woman, wife",215,"noun"],
+["τε","and (so), so",215,"conj"],
+["δύναμαι","I am able, I can",210,"verb"],
+["θέλω","I will, wish, desire",208,"verb"],
+["οὕτως","thus, so, in this way",208,"adv"],
+["ἰδού","see! behold!",200,"particle"],
+["Ἰουδαῖος, -α, -ον","Jewish; (noun) a Jew, Judean",195,"adj"],
+["εἰσέρχομαι","I come in, go in, enter",194,"verb"],
+["νόμος, -ου, ὁ","law, principle",194,"noun"],
+["παρά","from (+gen); beside, with (+dat); alongside (+acc)",194,"prep"],
+["γράφω","I write",191,"verb"],
+["κόσμος, -ου, ὁ","world, universe; humankind",186,"noun"],
+["καθώς","as, even as",182,"adv"],
+["μέν","on the one hand, indeed",179,"particle"],
+["χείρ, χειρός, ἡ","hand",177,"noun"],
+["εὑρίσκω","I find",176,"verb"],
+["ἄγγελος, -ου, ὁ","angel, messenger",175,"noun"],
+["ὄχλος, -ου, ὁ","crowd, multitude",175,"noun"],
+["ἁμαρτία, -ας, ἡ","sin",173,"noun"],
+["ἔργον, -ου, τό","work, deed, action",169,"noun"],
+["ἄν","(particle making a statement contingent; often untranslated)",166,"particle"],
+["δόξα, -ης, ἡ","glory, majesty, fame",166,"noun"],
+["βασιλεία, -ας, ἡ","kingdom, reign",162,"noun"],
+["ἔθνος, -ους, τό","nation; (pl.) Gentiles",162,"noun"],
+["πόλις, -εως, ἡ","city",162,"noun"],
+["τότε","then, thereafter",160,"adv"],
+["ἐσθίω","I eat",158,"verb"],
+["Παῦλος, -ου, ὁ","Paul",158,"noun"],
+["καρδία, -ας, ἡ","heart",156,"noun"],
+["Πέτρος, -ου, ὁ","Peter",156,"noun"],
+["ἄλλος, -η, -ο","other, another",155,"adj"],
+["χάρις, -ιτος, ἡ","grace, favor, kindness",155,"noun"],
+["ἵστημι","I stand, cause to stand",155,"verb"],
+["πρῶτος, -η, -ον","first, earlier",155,"adj"],
+["πορεύομαι","I go, proceed, live",153,"verb"],
+["ὅστις, ἥτις, ὅ τι","whoever, whatever",153,"pron"],
+["ὑπέρ","on behalf of (+gen); above (+acc)",150,"prep"],
+["καλέω","I call, name, invite",148,"verb"],
+["σάρξ, σαρκός, ἡ","flesh, body",147,"noun"],
+["νῦν","now",147,"adv"],
+["ἕως","until (conj.); as far as (+gen)",146,"conj"],
+["ἐγείρω","I raise up, wake",144,"verb"],
+["προφήτης, -ου, ὁ","prophet",144,"noun"],
+["ἀγαπάω","I love",143,"verb"],
+["ἀφίημι","I let go, forgive, permit, leave",143,"verb"],
+["οὐδέ","and not, not even, neither, nor",143,"conj"],
+["λαός, -οῦ, ὁ","people, crowd",142,"noun"],
+["σῶμα, -ατος, τό","body",142,"noun"],
+["πάλιν","again",141,"adv"],
+["ζάω","I live",140,"verb"],
+["φωνή, -ῆς, ἡ","sound, noise, voice",139,"noun"],
+["δύο","two",135,"adj"],
+["ζωή, -ῆς, ἡ","life",135,"noun"],
+["Ἰωάννης, -ου, ὁ","John",135,"noun"],
+["βλέπω","I see, look at",133,"verb"],
+["ἀποστέλλω","I send (away)",132,"verb"],
+["ἀμήν","truly, amen",129,"particle"],
+["νεκρός, -ά, -όν","dead; (noun) dead body",128,"adj"],
+["σύν","with (+dat)",128,"prep"],
+["δοῦλος, -ου, ὁ","slave, servant",126,"noun"],
+["ὅταν","whenever",123,"conj"],
+["αἰών, -ῶνος, ὁ","age, eternity",122,"noun"],
+["ἀρχιερεύς, -έως, ὁ","high priest, chief priest",122,"noun"],
+["βάλλω","I throw",122,"verb"],
+["θάνατος, -ου, ὁ","death",120,"noun"],
+["δύναμις, -εως, ἡ","power, miracle",119,"noun"],
+["παραδίδωμι","I entrust, hand over, betray",119,"verb"],
+["μένω","I remain, live",118,"verb"],
+["ἀπέρχομαι","I depart",117,"verb"],
+["ζητέω","I seek, desire, try to obtain",117,"verb"],
+["ἀγάπη, -ης, ἡ","love",116,"noun"],
+["βασιλεύς, -έως, ὁ","king",115,"noun"],
+["ἐκκλησία, -ας, ἡ","church, congregation, assembly",114,"noun"],
+["ἴδιος, -α, -ον","one's own",114,"adj"],
+["κρίνω","I judge, decide, prefer",114,"verb"],
+["μόνος, -η, -ον","alone, only",114,"adj"],
+["οἶκος, -ου, ὁ","house, home",114,"noun"],
+["ἀποθνῄσκω","I die",111,"verb"],
+["ὅσος, -η, -ον","as great as, as many as",110,"pron"],
+["ἀλήθεια, -ας, ἡ","truth",109,"noun"],
+["μέλλω","I am about to",109,"verb"],
+["ὅλος, -η, -ον","whole, complete",109,"adj"],
+["παρακαλέω","I urge, exhort, comfort",109,"verb"],
+["ἀνίστημι","I raise; (intrans.) I rise, get up",108,"verb"],
+["σῴζω","I save, deliver, rescue",106,"verb"],
+["ὥρα, -ας, ἡ","hour, occasion, moment",106,"noun"],
+["ἐκεῖ","there, in that place",105,"adv"],
+["ὅτε","when",103,"conj"],
+["πῶς","how?",103,"adv"],
+["ψυχή, -ῆς, ἡ","soul, life, self",103,"noun"],
+["ἀγαθός, -ή, -όν","good, useful",102,"adj"],
+["ἐξουσία, -ας, ἡ","authority, power",102,"noun"],
+["αἴρω","I raise, take up, take away",101,"verb"],
+["δεῖ","it is necessary",101,"verb"],
+["ὁδός, -οῦ, ἡ","way, road, journey",101,"noun"],
+["ἀλλήλων","one another",100,"pron"],
+["ὀφθαλμός, -οῦ, ὁ","eye",100,"noun"],
+["τίθημι","I put, place",100,"verb"],
+["τέκνον, -ου, τό","child, descendant",99,"noun"],
+["ἕτερος, -α, -ον","other, another, different",98,"adj"],
+["Φαρισαῖος, -ου, ὁ","Pharisee",98,"noun"],
+["αἷμα, -ατος, τό","blood",97,"noun"],
+["ἄρτος, -ου, ὁ","bread, loaf, food",97,"noun"],
+["γεννάω","I beget, give birth to",97,"verb"],
+["διδάσκω","I teach",97,"verb"],
+["περιπατέω","I walk (around), live",95,"verb"],
+["φοβέομαι","I fear",95,"verb"],
+["ἐνώπιον","before (+gen)",94,"prep"],
+["τόπος, -ου, ὁ","place, location",94,"noun"],
+["ἔτι","still, yet, even",93,"adv"],
+["οἰκία, -ας, ἡ","house, home",93,"noun"],
+["πούς, ποδός, ὁ","foot",93,"noun"],
+["δικαιοσύνη, -ης, ἡ","righteousness, justice",92,"noun"],
+["εἰρήνη, -ης, ἡ","peace",92,"noun"],
+["θάλασσα, -ης, ἡ","sea, lake",91,"noun"],
+["κάθημαι","I sit (down), live",91,"verb"],
+["ἀκολουθέω","I follow, accompany",90,"verb"],
+["ἀπόλλυμι","(act.) I destroy; (mid.) I perish, die",90,"verb"],
+["μηδείς, μηδεμία, μηδέν","no one, nothing",90,"adj"],
+["πίπτω","I fall",90,"verb"],
+["ἑπτά","seven",88,"adj"],
+["οὔτε","and not, neither, nor",87,"conj"],
+["ἄρχω","(act.) I rule; (mid.) I begin",86,"verb"],
+["πληρόω","I fill, complete, fulfill",86,"verb"],
+["προσέρχομαι","I come to, go to",86,"verb"],
+["καιρός, -οῦ, ὁ","(appointed) time, season",85,"noun"],
+["προσεύχομαι","I pray",85,"verb"],
+["κἀγώ","and I, but I (καί + ἐγώ)",84,"pron"],
+["μήτηρ, μητρός, ἡ","mother",83,"noun"],
+["ὥστε","therefore, so that",83,"conj"],
+["ἀναβαίνω","I go up, come up",82,"verb"],
+["ἕκαστος, -η, -ον","each, every",82,"adj"],
+["ὅπου","where",82,"adv"],
+["ἐκβάλλω","I cast out, send out",81,"verb"],
+["καταβαίνω","I go down, come down",81,"verb"],
+["μᾶλλον","more, rather",81,"adv"],
+["ἀπόστολος, -ου, ὁ","apostle, messenger",80,"noun"],
+["Μωϋσῆς, -έως, ὁ","Moses",80,"noun"],
+["δίκαιος, -α, -ον","righteous, just",79,"adj"],
+["πέμπω","I send",79,"verb"],
+["ὑπάγω","I depart, go away",79,"verb"],
+["πονηρός, -ά, -όν","evil, bad",78,"adj"],
+["στόμα, -ατος, τό","mouth",78,"noun"],
+["ἀνοίγω","I open",77,"verb"],
+["βαπτίζω","I baptize, dip, immerse",77,"verb"],
+["Ἰερουσαλήμ, ἡ","Jerusalem",77,"noun"],
+["σημεῖον, -ου, τό","sign, miracle",77,"noun"],
+["ἐμός, ἐμή, ἐμόν","my, mine",76,"adj"],
+["εὐαγγέλιον, -ου, τό","good news, gospel",76,"noun"],
+["μαρτυρέω","I bear witness, testify",76,"verb"],
+["πρόσωπον, -ου, τό","face, appearance",76,"noun"],
+["ὕδωρ, ὕδατος, τό","water",76,"noun"],
+["δώδεκα","twelve",75,"adj"],
+["κεφαλή, -ῆς, ἡ","head",75,"noun"],
+["Σίμων, -ωνος, ὁ","Simon",75,"noun"],
+["ἀποκτείνω","I kill",74,"verb"],
+["χαίρω","I rejoice; (greeting) hail, welcome",74,"verb"],
+["Ἀβραάμ, ὁ","Abraham",73,"noun"],
+["φῶς, φωτός, τό","light",73,"noun"],
+["πίνω","I drink",73,"verb"],
+["πῦρ, πυρός, τό","fire",71,"noun"],
+["αἰώνιος, -ον","eternal",71,"adj"],
+["ἱερόν, -οῦ, τό","temple",71,"noun"]
+];
+const NT_WORDS = 138020; // approx. total words in the Greek NT
+
+/* =========================================================
+   DATA — paradigms (core morphology)
+   ========================================================= */
+const CASES=["Nom","Gen","Dat","Acc"];
+function nounTable(id,title,info,sg,pl,voc){
+  const cells=[];CASES.forEach((c,i)=>{cells.push({form:sg[i],label:c+" sg",r:i,c:0});cells.push({form:pl[i],label:c+" pl",r:i,c:1});});
+  const rows=[...CASES]; if(voc){rows.push("Voc");cells.push({form:voc[0],label:"Voc sg",r:4,c:0});cells.push({form:voc[1],label:"Voc pl",r:4,c:1});}
+  return {id,title,info,group:"Nouns",drill:id,rows,cols:["Singular","Plural"],cells};
+}
+function verbTable(id,title,info,drill,prefix,forms,group="Verbs"){
+  const P=["1st","2nd","3rd"],cells=[];
+  forms.forEach((f,i)=>cells.push({form:f,label:`${prefix} ${P[i%3]} ${i<3?"sg":"pl"}`,r:i%3,c:i<3?0:1}));
+  return {id,title,info,group,drill,rows:P,cols:["Singular","Plural"],cells};
+}
+const PARADIGMS=[
+ (()=>{const g=["masc","fem","neut"],F=[["ὁ","τοῦ","τῷ","τόν","οἱ","τῶν","τοῖς","τούς"],["ἡ","τῆς","τῇ","τήν","αἱ","τῶν","ταῖς","τάς"],["τό","τοῦ","τῷ","τό","τά","τῶν","τοῖς","τά"]];
+   const cells=[];F.forEach((col,gi)=>col.forEach((f,i)=>cells.push({form:f,label:`${CASES[i%4]} ${i<4?"sg":"pl"} ${g[gi]}`,r:i%4,c:gi+(i<4?0:3)})));
+   return {id:"art",title:"The article — ὁ, ἡ, τό",info:"Learn this first. It appears ~19,800 times and tells you the case, number and gender of the noun it goes with.",group:"Article",drill:"art",rows:CASES,cols:["M sg","F sg","N sg","M pl","F pl","N pl"],cells};})(),
+ nounTable("n2m","2nd declension masc. — λόγος","The -ος pattern. θεός, κύριος, ἄνθρωπος, κόσμος, υἱός all follow it.",["λόγος","λόγου","λόγῳ","λόγον"],["λόγοι","λόγων","λόγοις","λόγους"],["λόγε","λόγοι"]),
+ nounTable("n2n","2nd declension neut. — ἔργον","Neuter rule: nominative = accusative, and neuter plurals end in -α.",["ἔργον","ἔργου","ἔργῳ","ἔργον"],["ἔργα","ἔργων","ἔργοις","ἔργα"]),
+ nounTable("n1a","1st declension fem. (η) — γραφή","The η-type. ζωή, ψυχή, φωνή, ἀγάπη (sg in η).",["γραφή","γραφῆς","γραφῇ","γραφήν"],["γραφαί","γραφῶν","γραφαῖς","γραφάς"]),
+ nounTable("n1b","1st declension fem. (α) — ὥρα","After ε, ι, ρ the α stays: ἡμέρα, καρδία, ἁμαρτία, ἐκκλησία. Note ὥρας = gen sg OR acc pl.",["ὥρα","ὥρας","ὥρᾳ","ὥραν"],["ὧραι","ὡρῶν","ὥραις","ὥρας"]),
+ nounTable("n3a","3rd declension — σάρξ","Find the stem from the genitive (σαρκ-ός). Endings: -, -ος, -ι, -α | -ες, -ων, -σι(ν), -ας.",["σάρξ","σαρκός","σαρκί","σάρκα"],["σάρκες","σαρκῶν","σαρξί(ν)","σάρκας"]),
+ nounTable("n3n","3rd declension neut. — ὄνομα","The -μα, -ματος nouns: πνεῦμα, σῶμα, αἷμα, στόμα.",["ὄνομα","ὀνόματος","ὀνόματι","ὄνομα"],["ὀνόματα","ὀνομάτων","ὀνόμασι(ν)","ὀνόματα"]),
+ verbTable("pai","Present active indicative — λύω","Ongoing / present action. Endings: -ω, -εις, -ει, -ομεν, -ετε, -ουσι(ν).","verb","Pres act ind",["λύω","λύεις","λύει","λύομεν","λύετε","λύουσι(ν)"]),
+ verbTable("pmi","Present middle/passive indicative — λύω","Same forms for middle and passive in the present. Deponents (ἔρχομαι, γίνομαι) use these with active meaning.","verb","Pres mid/pass ind",["λύομαι","λύῃ","λύεται","λυόμεθα","λύεσθε","λύονται"]),
+ verbTable("iai","Imperfect active indicative — λύω","Augment (ἐ-) + present stem = ongoing action in the past. Note ἔλυον = 1st sg AND 3rd pl.","verb","Impf act ind",["ἔλυον","ἔλυες","ἔλυε(ν)","ἐλύομεν","ἐλύετε","ἔλυον"]),
+ verbTable("fai","Future active indicative — λύω","Present stem + σ + present endings.","verb","Fut act ind",["λύσω","λύσεις","λύσει","λύσομεν","λύσετε","λύσουσι(ν)"]),
+ verbTable("aai","Aorist active indicative — λύω","The most common narrative tense. Augment + stem + σα. Simple past event.","verb","Aor act ind",["ἔλυσα","ἔλυσας","ἔλυσε(ν)","ἐλύσαμεν","ἐλύσατε","ἔλυσαν"]),
+ verbTable("api","Aorist passive indicative — λύω","Augment + stem + θη. 'I was loosed.'","verb","Aor pass ind",["ἐλύθην","ἐλύθης","ἐλύθη","ἐλύθημεν","ἐλύθητε","ἐλύθησαν"]),
+ verbTable("eimi","εἰμί — present","Irregular, but you will see it ~2,460 times. Memorise cold.","eimi","Pres ind",["εἰμί","εἶ","ἐστί(ν)","ἐσμέν","ἐστέ","εἰσί(ν)"],"εἰμί"),
+ verbTable("eimi2","εἰμί — imperfect","ἦν ('was') — John 1:1 uses it three times.","eimi","Impf ind",["ἤμην","ἦς","ἦν","ἦμεν","ἦτε","ἦσαν"],"εἰμί"),
+ nounTable("ego","Personal pronoun — ἐγώ / ἡμεῖς","Short forms (μου, μοι, με) are unemphatic; long forms (ἐμοῦ…) are emphatic.",["ἐγώ","μου / ἐμοῦ","μοι / ἐμοί","με / ἐμέ"],["ἡμεῖς","ἡμῶν","ἡμῖν","ἡμᾶς"]),
+ nounTable("su","Personal pronoun — σύ / ὑμεῖς","Watch ἡμ- (we) vs ὑμ- (you pl). One letter apart, constantly confused.",["σύ","σου / σοῦ","σοι / σοί","σε / σέ"],["ὑμεῖς","ὑμῶν","ὑμῖν","ὑμᾶς"])
+];
+PARADIGMS.filter(p=>["ego","su"].includes(p.id)).forEach(p=>p.group="Pronouns");
+
+/* =========================================================
+   DATA — reader passages (word-by-word parsing)
+   [form, lemma, gloss, parsing, note]
+   ========================================================= */
+const PASSAGES=[
+{ id:"jn1", title:"John 1:1–5", translation:{
+  1:"In the beginning was the Word, and the Word was with God, and the Word was God.",
+  2:"He was in the beginning with God.",
+  3:"All things came into being through him, and without him not one thing came into being that has come into being.",
+  4:"In him was life, and the life was the light of men.",
+  5:"And the light shines in the darkness, and the darkness did not overcome it."},
+  note:"Punctuation of vv.3–4: the traditional reading (Chrysostom, KJV, ESV) ends v.3 with ὃ γέγονεν, as shown here. NA28/UBS5 instead begin v.4 with it ('What has come into being in him was life'). The Greek words are identical; only the punctuation differs.",
+  verses:{
+  1:[["Ἐν","ἐν","in","preposition (+dative)"],["ἀρχῇ","ἀρχή","beginning","noun, dative singular feminine","No article, but 'in the beginning' is still definite (cf. Gen 1:1 LXX ἐν ἀρχῇ)."],["ἦν","εἰμί","was","imperfect indicative 3rd sg","Imperfect = continuous past: the Word already 'was' when the beginning happened."],["ὁ","ὁ","the","article, nominative singular masculine"],["λόγος","λόγος","Word","noun, nominative singular masculine"],["καὶ","καί","and","conjunction"],["ὁ","ὁ","the","article, nominative singular masculine"],["λόγος","λόγος","Word","noun, nominative singular masculine"],["ἦν","εἰμί","was","imperfect indicative 3rd sg"],["πρὸς","πρός","with","preposition (+accusative)","πρός + acc. usually 'toward'; here 'with, face to face with'."],["τὸν","ὁ","the","article, accusative singular masculine"],["θεόν","θεός","God","noun, accusative singular masculine"],["καὶ","καί","and","conjunction"],["θεὸς","θεός","God","noun, nominative singular masculine","Predicate nominative placed first, without the article. The article marks ὁ λόγος as the subject: 'the Word was God' — fully divine, yet not the whole Godhead (that would be ὁ θεὸς ἦν ὁ λόγος)."],["ἦν","εἰμί","was","imperfect indicative 3rd sg"],["ὁ","ὁ","the","article, nominative singular masculine"],["λόγος.","λόγος","Word","noun, nominative singular masculine"]],
+  2:[["οὗτος","οὗτος","this one / he","demonstrative pronoun, nominative singular masculine"],["ἦν","εἰμί","was","imperfect indicative 3rd sg"],["ἐν","ἐν","in","preposition (+dative)"],["ἀρχῇ","ἀρχή","beginning","noun, dative singular feminine"],["πρὸς","πρός","with","preposition (+accusative)"],["τὸν","ὁ","the","article, accusative singular masculine"],["θεόν.","θεός","God","noun, accusative singular masculine"]],
+  3:[["πάντα","πᾶς","all things","adjective, nominative plural neuter","Neuter plural subject takes a singular verb (ἐγένετο) — a regular Greek rule."],["δι᾽","διά","through","preposition (+genitive)","διά elides its α before a vowel."],["αὐτοῦ","αὐτός","him","personal pronoun, genitive singular masculine"],["ἐγένετο,","γίνομαι","came into being","aorist middle indicative 3rd sg","γίνομαι is middle in form, active in meaning (deponent). Contrast ἦν: the Word 'was', creation 'came to be'."],["καὶ","καί","and","conjunction"],["χωρὶς","χωρίς","without","preposition (+genitive)"],["αὐτοῦ","αὐτός","him","personal pronoun, genitive singular masculine"],["ἐγένετο","γίνομαι","came into being","aorist middle indicative 3rd sg"],["οὐδὲ","οὐδέ","not even","conjunction / adverb"],["ἕν.","εἷς","one (thing)","adjective/numeral, nominative singular neuter"],["ὃ","ὅς","which, that","relative pronoun, nominative singular neuter"],["γέγονεν.","γίνομαι","has come into being","perfect active indicative 3rd sg","Perfect = completed action with lasting result."]],
+  4:[["ἐν","ἐν","in","preposition (+dative)"],["αὐτῷ","αὐτός","him","personal pronoun, dative singular masculine"],["ζωὴ","ζωή","life","noun, nominative singular feminine"],["ἦν,","εἰμί","was","imperfect indicative 3rd sg"],["καὶ","καί","and","conjunction"],["ἡ","ὁ","the","article, nominative singular feminine"],["ζωὴ","ζωή","life","noun, nominative singular feminine"],["ἦν","εἰμί","was","imperfect indicative 3rd sg"],["τὸ","ὁ","the","article, nominative singular neuter"],["φῶς","φῶς","light","noun, nominative singular neuter"],["τῶν","ὁ","the","article, genitive plural masculine"],["ἀνθρώπων·","ἄνθρωπος","of men / of people","noun, genitive plural masculine"]],
+  5:[["καὶ","καί","and","conjunction"],["τὸ","ὁ","the","article, nominative singular neuter"],["φῶς","φῶς","light","noun, nominative singular neuter"],["ἐν","ἐν","in","preposition (+dative)"],["τῇ","ὁ","the","article, dative singular feminine"],["σκοτίᾳ","σκοτία","darkness","noun, dative singular feminine"],["φαίνει,","φαίνω","shines","present active indicative 3rd sg","Present: it keeps on shining."],["καὶ","καί","and","conjunction"],["ἡ","ὁ","the","article, nominative singular feminine"],["σκοτία","σκοτία","darkness","noun, nominative singular feminine"],["αὐτὸ","αὐτός","it","personal pronoun, accusative singular neuter","Neuter because it refers back to τὸ φῶς."],["οὐ","οὐ","not","negative particle"],["κατέλαβεν.","καταλαμβάνω","overcame / grasped","aorist active indicative 3rd sg","Second aorist of καταλαμβάνω. Can mean 'seize/overcome' or 'comprehend' — John likely plays on both."]]
+}},
+{ id:"jn316", title:"John 3:16", translation:{16:"For God so loved the world, that he gave his one and only Son, so that everyone who believes in him should not perish but have eternal life."},
+  verses:{16:[["Οὕτως","οὕτως","in this way, so","adverb","Means 'in this manner' more than 'so much': God loved the world in this way — by giving."],["γὰρ","γάρ","for","conjunction (postpositive)","Never first in its clause."],["ἠγάπησεν","ἀγαπάω","loved","aorist active indicative 3rd sg"],["ὁ","ὁ","the","article, nominative singular masculine"],["θεὸς","θεός","God","noun, nominative singular masculine"],["τὸν","ὁ","the","article, accusative singular masculine"],["κόσμον,","κόσμος","world","noun, accusative singular masculine"],["ὥστε","ὥστε","so that","conjunction (result)"],["τὸν","ὁ","the","article, accusative singular masculine"],["υἱὸν","υἱός","Son","noun, accusative singular masculine"],["τὸν","ὁ","the","article, accusative singular masculine"],["μονογενῆ","μονογενής","one and only, unique","adjective, accusative singular masculine","Third-declension adjective. Literally 'one of a kind'."],["ἔδωκεν,","δίδωμι","gave","aorist active indicative 3rd sg","κ-aorist of δίδωμι."],["ἵνα","ἵνα","so that","conjunction (purpose)","Takes the subjunctive: ἀπόληται, ἔχῃ."],["πᾶς","πᾶς","everyone","adjective, nominative singular masculine"],["ὁ","ὁ","the (one)","article, nominative singular masculine"],["πιστεύων","πιστεύω","believing","present active participle, nominative singular masculine","Article + participle = 'the one who believes'. Present: ongoing believing."],["εἰς","εἰς","into, in","preposition (+accusative)","πιστεύω εἰς — characteristic of John: faith directed into a person."],["αὐτὸν","αὐτός","him","personal pronoun, accusative singular masculine"],["μὴ","μή","not","negative particle","μή, not οὐ, because the verb is subjunctive."],["ἀπόληται","ἀπόλλυμι","perish","aorist middle subjunctive 3rd sg"],["ἀλλ᾽","ἀλλά","but","conjunction"],["ἔχῃ","ἔχω","have","present active subjunctive 3rd sg"],["ζωὴν","ζωή","life","noun, accusative singular feminine"],["αἰώνιον.","αἰώνιος","eternal","adjective, accusative singular feminine","Two-termination adjective: the -ον form is used for both masculine and feminine."]]}
+},
+{ id:"1jn48", title:"1 John 4:8", translation:{8:"The one who does not love has not known God, because God is love."},
+  verses:{8:[["ὁ","ὁ","the (one)","article, nominative singular masculine"],["μὴ","μή","not","negative particle","Participles are negated with μή."],["ἀγαπῶν","ἀγαπάω","loving","present active participle, nominative singular masculine","Contract verb: ἀγαπα + ων → ἀγαπῶν."],["οὐκ","οὐ","not","negative particle","οὐκ before a vowel."],["ἔγνω","γινώσκω","knew, has known","aorist active indicative 3rd sg","Root aorist of γινώσκω."],["τὸν","ὁ","the","article, accusative singular masculine"],["θεόν,","θεός","God","noun, accusative singular masculine"],["ὅτι","ὅτι","because","conjunction"],["ὁ","ὁ","the","article, nominative singular masculine"],["θεὸς","θεός","God","noun, nominative singular masculine"],["ἀγάπη","ἀγάπη","love","noun, nominative singular feminine","Anarthrous predicate: love is what God is in his nature — not 'love is God'."],["ἐστίν.","εἰμί","is","present indicative 3rd sg"]]}
+}
+];
+
+const ALPHABET=[
+["Α α","alpha","a","a in 'father'"],["Β β","beta","b","b"],["Γ γ","gamma","g","hard g; γγ/γκ = 'ng'"],["Δ δ","delta","d","d"],
+["Ε ε","epsilon","e","short e in 'met'"],["Ζ ζ","zeta","z","dz / z"],["Η η","eta","ē","long e, as in German 'See'"],["Θ θ","theta","th","th in 'think'"],
+["Ι ι","iota","i","i in 'machine' / 'it'"],["Κ κ","kappa","k","k"],["Λ λ","lambda","l","l"],["Μ μ","mu","m","m"],
+["Ν ν","nu","n","n"],["Ξ ξ","xi","x","x in 'box'"],["Ο ο","omicron","o","short o in 'not'"],["Π π","pi","p","p"],
+["Ρ ρ","rho","r","rolled r (as in Italian)"],["Σ σ ς","sigma","s","s — ς only at word end"],["Τ τ","tau","t","t"],["Υ υ","upsilon","u / y","German ü"],
+["Φ φ","phi","ph","f"],["Χ χ","chi","ch","German 'ch' in 'Bach'"],["Ψ ψ","psi","ps","ps in 'lips'"],["Ω ω","omega","ō","long o in 'tone'"]
+];
+const DIPH=[["αι","ai","'aisle'"],["ει","ei","'eight'"],["οι","oi","'oil'"],["αυ","au","'how' / German 'Haus'"],["ου","ou","'soup'"],["ευ, ηυ","eu","'feud'"],["υι","ui","'suite'"]];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+const KEY="koine-trainer-v1";
+const today=()=>{const d=new Date();return Math.floor((d.getTime()-d.getTimezoneOffset()*6e4)/864e5);};
+const INTERVALS=[0,1,2,4,8,16,32,64,128,256];
+let S=load();
+function load(){
+  let s=null; try{s=JSON.parse(localStorage.getItem(KEY));}catch(e){}
+  return Object.assign({cards:{},newPerDay:15,introduced:{},streak:{last:null,count:0},checks:{},drill:{right:0,total:0},reverse:false},s||{});
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function touchStreak(){const t=today();if(S.streak.last===t)return;S.streak.count=(S.streak.last===t-1)?S.streak.count+1:1;S.streak.last=t;save();}
+
+const cardOf=i=>S.cards[i];
+function learnedIdx(minBox=3){return VOCAB.map((_,i)=>i).filter(i=>S.cards[i]&&S.cards[i].box>=minBox);}
+function coverage(minBox=3){const sum=learnedIdx(minBox).reduce((a,i)=>a+VOCAB[i][2],0);return sum/NT_WORDS*100;}
+function dueList(){const t=today();return VOCAB.map((_,i)=>i).filter(i=>S.cards[i]&&S.cards[i].due<=t);}
+function newAvailable(){const t=today(),done=S.introduced[t]||0;const left=Math.max(0,S.newPerDay-done);return VOCAB.map((_,i)=>i).filter(i=>!S.cards[i]).slice(0,left);}
+
+/* =========================================================
+   UI helpers
+   ========================================================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+function speak(text){
+  try{const u=new SpeechSynthesisUtterance(text.split(",")[0].replace(/[-()]/g,""));u.lang="el-GR";u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}
+}
+const TABS=[["today","Today"],["vocab","Vocab"],["forms","Forms"],["read","Read"],["alpha","Alphabet"],["method","Method"]];
+let tab="today";
+function nav(){ $("#nav").innerHTML=TABS.map(([k,l])=>`<button class="${k===tab?"on":""}" data-tab="${k}">${l}</button>`).join(""); }
+$("#nav").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){tab=b.dataset.tab;render();window.scrollTo(0,0);}});
+function render(){nav();({today:viewToday,vocab:viewVocab,forms:viewForms,read:viewRead,alpha:viewAlpha,method:viewMethod})[tab]();}
+
+/* theme */
+(function(){let t=null;try{t=localStorage.getItem(KEY+"-theme");}catch(e){} if(t)document.documentElement.dataset.theme=t;
+ $("#themeBtn").onclick=()=>{const cur=document.documentElement.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");const n=cur==="dark"?"light":"dark";document.documentElement.dataset.theme=n;try{localStorage.setItem(KEY+"-theme",n);}catch(e){}};})();
+
+/* =========================================================
+   TODAY — the daily plan
+   ========================================================= */
+const MISSION=[
+ ["rev","Clear all due vocabulary reviews","Vocab tab. Do these first: they are what stops you forgetting."],
+ ["new","Learn today's new words","Highest frequency first. Say each one out loud."],
+ ["form","Drill one form chart: 30 reps at 90% or better","Forms tab. Speed matters — aim for under 2 seconds per form."],
+ ["read","Read one passage twice: once with help, once without","Read tab. On the second pass, cover the glosses and parse each word yourself."],
+ ["out","Read it aloud to someone, or record yourself","Producing the language sticks far better than only recognising it."]
+];
+function viewToday(){
+  const t=today(),ch=S.checks[t]||{};
+  const due=dueList().length,nw=newAvailable().length,learned=learnedIdx().length,started=Object.keys(S.cards).length;
+  const cov=coverage(),cov2=coverage(1);
+  const acc=S.drill.total?Math.round(S.drill.right/S.drill.total*100):0;
+  $("#app").innerHTML=`
+  <h2>Today's session <span class="muted small">· about 45 min</span></h2>
+  <div class="grid">
+    <div class="stat"><span class="muted small">Due reviews</span><b>${due}</b></div>
+    <div class="stat"><span class="muted small">New words left</span><b>${nw}</b></div>
+    <div class="stat"><span class="muted small">Words solid</span><b>${learned}<span class="muted small"> / ${started} started</span></b></div>
+    <div class="stat"><span class="muted small">Streak</span><b>${S.streak.last>=t-1?S.streak.count:0} 🔥</b></div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <div class="row" style="justify-content:space-between"><b>NT coverage</b><span class="muted small">${cov.toFixed(1)}% solid · ${cov2.toFixed(1)}% started</span></div>
+    <div class="bar" style="margin-top:8px"><i style="width:${Math.min(100,cov)}%"></i></div>
+    <p class="muted small" style="margin:8px 0 0">The share of all the words in the NT text (~138,000) that your solid vocabulary accounts for. All ${VOCAB.length} words in this deck together cover roughly ${(VOCAB.reduce((a,v)=>a+v[2],0)/NT_WORDS*100).toFixed(0)}%.</p>
+  </div>
+  <div class="card">
+    <b>Today's tasks</b>
+    ${MISSION.map(([k,a,b])=>`<label class="check"><input type="checkbox" data-chk="${k}" ${ch[k]?"checked":""}><span><b>${a}</b><br><span class="muted small">${b}</span></span></label>`).join("")}
+  </div>
+  <div class="row"><button class="primary" data-go="vocab">Start reviews →</button><span class="muted small">Form drill accuracy so far: ${acc}% (${S.drill.total} answers)</span></div>`;
+  $("#app").querySelectorAll("[data-chk]").forEach(c=>c.onchange=()=>{(S.checks[t]=S.checks[t]||{})[c.dataset.chk]=c.checked;touchStreak();save();});
+  $("#app").querySelector("[data-go]").onclick=()=>{tab="vocab";render();};
+}
+
+/* =========================================================
+   VOCAB — spaced repetition
+   ========================================================= */
+let queue=[],cur=null,revealed=false,vocabMode="study";
+function buildQueue(){queue=shuffle(dueList()).concat(newAvailable());}
+function viewVocab(){
+  if(vocabMode==="list")return viewVocabList();
+  if(!queue.length||cur===null){buildQueue();cur=queue.shift();revealed=false;}
+  const head=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Vocabulary</h2>
+    <div class="row"><button class="small ${S.reverse?"on":""}" id="rev">${S.reverse?"English → Greek":"Greek → English"}</button><button class="small" id="lst">Word list</button></div></div>`;
+  if(cur===undefined){
+    $("#app").innerHTML=head+`<div class="card flash"><div style="font-size:2rem">✓</div><b>Done for today.</b><p class="muted">No reviews due and today's new words are in. Go and read a passage, or raise the daily new-word limit.</p>
+    <div class="row" style="justify-content:center">New words per day <input type="number" id="npd" min="0" max="60" value="${S.newPerDay}" style="width:80px"><button id="more">Save</button></div></div>`;
+    bindVocabHead();
+    $("#more").onclick=()=>{S.newPerDay=Math.max(0,Math.min(60,+$("#npd").value||0));save();cur=null;viewVocab();};
+    return;
+  }
+  const v=VOCAB[cur],c=S.cards[cur],isNew=!c;
+  const front=S.reverse?`<div class="gloss">${esc(v[1])}</div><div class="muted small" style="margin-top:6px">${v[3]}</div>`:`<div class="big gk">${esc(v[0])}</div>`;
+  const back=S.reverse?`<div class="big gk" style="margin-top:14px">${esc(v[0])}</div>`:`<div class="gloss">${esc(v[1])}</div>`;
+  $("#app").innerHTML=head+`
+  <div class="card flash">
+    <div class="row" style="justify-content:center;gap:6px;margin-bottom:14px">
+      <span class="tag">${isNew?"NEW":"review"}</span><span class="tag">${v[3]}</span><span class="tag">×${v[2].toLocaleString()} in NT</span><span class="tag">#${cur+1}</span>
+    </div>
+    ${front}
+    <div id="back" class="${revealed?"":"hide"}">${back}
+      <p class="muted small" style="margin-top:10px">${S.reverse?"":v[3]}</p></div>
+    <div style="margin-top:18px" class="row" style="justify-content:center">
+      ${revealed?"":`<button class="primary" id="show" style="margin:0 auto">Show answer <span class="muted small">(space)</span></button>`}
+    </div>
+    ${revealed?`<div class="answers">
+      <button class="a-again" data-g="0">Again<br><span class="small muted">1</span></button>
+      <button data-g="1">Hard<br><span class="small muted">2</span></button>
+      <button class="a-good" data-g="2">Good<br><span class="small muted">3</span></button>
+      <button data-g="3">Easy<br><span class="small muted">4</span></button></div>`:""}
+    <div class="row" style="justify-content:center;margin-top:14px"><button class="ghost small" id="say">🔊 Listen</button><span class="muted small">${queue.length} left in this session</span></div>
+  </div>
+  <p class="muted small">Grade yourself honestly. "Again" means you did not get it instantly; the word comes back this session.</p>`;
+  bindVocabHead();
+  const sh=$("#show"); if(sh)sh.onclick=()=>{revealed=true;viewVocab();};
+  $("#say").onclick=()=>speak(v[0]);
+  $("#app").querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>grade(+b.dataset.g));
+}
+function bindVocabHead(){
+  $("#rev").onclick=()=>{S.reverse=!S.reverse;save();revealed=false;viewVocab();};
+  $("#lst").onclick=()=>{vocabMode="list";viewVocab();};
+}
+function grade(g){
+  const t=today();let c=S.cards[cur];
+  if(!c){c=S.cards[cur]={box:0,due:t,reps:0,lapses:0};S.introduced[t]=(S.introduced[t]||0)+1;}
+  c.reps++;
+  if(g===0){c.lapses++;c.box=Math.max(0,c.box>1?1:0);c.due=t;queue.splice(Math.min(3,queue.length),0,cur);}
+  else{c.box=Math.min(INTERVALS.length-1,c.box+(g===1?0:g===2?1:2));if(g===1&&c.box===0)c.box=1;c.due=t+Math.max(1,INTERVALS[c.box]);}
+  touchStreak();save();cur=queue.shift();revealed=false;viewVocab();
+}
+document.addEventListener("keydown",e=>{
+  if(tab!=="vocab"||vocabMode!=="study"||e.target.tagName==="INPUT")return;
+  if(e.code==="Space"&&!revealed&&cur!==undefined){e.preventDefault();revealed=true;viewVocab();}
+  else if(revealed&&["1","2","3","4"].includes(e.key))grade(+e.key-1);
+});
+function viewVocabList(){
+  let cum=0;
+  const rows=VOCAB.map((v,i)=>{cum+=v[2];const c=S.cards[i];const lvl=!c?"":c.box>=3?"l3":c.box>=1?"l2":"l1";
+    return `<tr><td class="muted">${i+1}</td><td class="gk" style="font-size:1.1rem"><span class="dot ${lvl}"></span>${esc(v[0])}</td><td>${esc(v[1])}</td><td class="muted">${v[2].toLocaleString()}</td><td class="muted">${(cum/NT_WORDS*100).toFixed(1)}%</td></tr>`;}).join("");
+  $("#app").innerHTML=`<div class="row" style="justify-content:space-between;margin-bottom:12px"><h2 style="margin:0">Word list (by frequency)</h2><button class="small" id="back">← Study</button></div>
+  <div class="card small"><span class="dot l3"></span>solid <span class="dot l2" style="margin-left:12px"></span>learning <span class="dot l1" style="margin-left:12px"></span>new/lapsed <span class="dot" style="margin-left:12px"></span>not started
+  <div class="row" style="margin-top:12px">
+    <button class="small" id="exp">Export progress</button>
+    <label class="small"><input type="file" id="imp" accept=".json" class="hide"><span style="cursor:pointer;text-decoration:underline">Import progress</span></label>
+    <span class="muted">Progress lives in this browser only. Export it now and then as a backup.</span></div></div>
+  <div class="tablewrap"><table class="list"><thead><tr><th>#</th><th>Greek</th><th>Meaning</th><th>NT ×</th><th>Cumulative</th></tr></thead><tbody>${rows}</tbody></table></div>
+  <p class="muted small">Occurrence counts are approximate. They follow the standard NT frequency lists (e.g. Mounce), and different editions differ by a few occurrences.</p>`;
+  $("#back").onclick=()=>{vocabMode="study";viewVocab();};
+  $("#exp").onclick=()=>{const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:"application/json"}));a.download="koine-progress.json";a.click();};
+  $("#imp").onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{S=Object.assign(load(),JSON.parse(t));save();alert("Progress imported.");viewVocabList();}catch(err){alert("That file could not be read.");}});};
+}
+
+/* =========================================================
+   FORMS — paradigm charts + recognition drill
+   ========================================================= */
+let formSel="art",drillQ=null,drillMode="drill",streakRun=0;
+function tableHTML(p,hlLabel){
+  const grid=p.rows.map(()=>p.cols.map(()=>""));
+  p.cells.forEach(c=>grid[c.r][c.c]=c);
+  return `<div class="tablewrap"><table><thead><tr><th></th>${p.cols.map(c=>`<th>${c}</th>`).join("")}</tr></thead><tbody>${
+    p.rows.map((r,ri)=>`<tr><th>${r}</th>${grid[ri].map(c=>`<td class="gk ${c&&hlLabel&&hlLabel.includes(c.label)?"hl":""}">${c?esc(c.form):""}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+}
+function drillPool(){const p=PARADIGMS.find(x=>x.id===formSel);return PARADIGMS.filter(x=>x.drill===p.drill);}
+function newQ(){
+  const pool=drillPool(),all=pool.flatMap(p=>p.cells.map(c=>Object.assign({p},c)));
+  const q=all[Math.floor(Math.random()*all.length)];
+  const valid=all.filter(c=>c.form===q.form).map(c=>c.label);
+  const labels=[...new Set(all.map(c=>c.label))].filter(l=>!valid.includes(l));
+  const key=q.label.split(" ").slice(0,-2).join(" "); // shared prefix → harder distractors
+  const near=shuffle(labels.filter(l=>l.startsWith(key))),far=shuffle(labels.filter(l=>!l.startsWith(key)));
+  const opts=shuffle([q.label,...[...near.slice(0,2),...far].slice(0,3)]);
+  drillQ={q,valid,opts,answered:null,t0:Date.now()};
+}
+function viewForms(){
+  const p=PARADIGMS.find(x=>x.id===formSel);
+  const groups=[...new Set(PARADIGMS.map(x=>x.group))];
+  const sel=`<select id="fsel">${groups.map(g=>`<optgroup label="${g}">${PARADIGMS.filter(x=>x.group===g).map(x=>`<option value="${x.id}" ${x.id===formSel?"selected":""}>${esc(x.title)}</option>`).join("")}</optgroup>`).join("")}</select>`;
+  let body="";
+  if(drillMode==="study"){
+    body=`<div class="card"><h3 style="margin-top:0">${esc(p.title)}</h3><p class="muted">${esc(p.info)}</p>${tableHTML(p)}</div>`;
+  }else{
+    if(!drillQ||drillQ.poolId!==p.drill){newQ();drillQ.poolId=p.drill;}
+    const d=drillQ;
+    body=`<div class="card flash">
+      <div class="muted small">Parse this form ${d.q.p.drill==="verb"?"(the verb is λύω)":"("+esc(d.q.p.title.split("—").pop().trim())+")"}</div>
+      <div class="big gk" style="margin-top:8px">${esc(d.q.form)}</div>
+      <div class="opts">${d.opts.map(o=>`<button data-o="${esc(o)}" class="${d.answered?(d.valid.includes(o)?"right":(o===d.answered?"wrong":"")):""}">${esc(o)}</button>`).join("")}</div>
+      ${d.answered?`<div style="margin-top:16px">${d.valid.includes(d.answered)?`<b style="color:var(--good)">Correct</b>`:`<b style="color:var(--bad)">Not quite.</b> It's <b>${esc(d.valid.join(" or "))}</b>`}
+        ${d.valid.length>1?`<p class="muted small">This form is ambiguous; in a real text the context decides.</p>`:""}
+        <div style="margin-top:12px">${tableHTML(d.q.p,d.valid)}</div>
+        <button class="primary" id="next" style="margin-top:14px">Next <span class="small">(Enter)</span></button></div>`:""}
+      <p class="muted small" style="margin-top:14px">Run: ${streakRun} in a row · overall ${S.drill.total?Math.round(S.drill.right/S.drill.total*100):0}% of ${S.drill.total}</p>
+    </div>`;
+  }
+  $("#app").innerHTML=`<h2>Forms</h2>
+   <div class="row" style="margin-bottom:12px">${sel}
+     <button class="small ${drillMode==="drill"?"on":""}" id="mDrill">Drill</button><button class="small ${drillMode==="study"?"on":""}" id="mStudy">Chart</button></div>
+   ${body}
+   <p class="muted small">How to use this: look at the chart, chant it out loud 3 times, then drill until you get 10 in a row. Do one chart a day, and come back to old ones.</p>`;
+  $("#fsel").onchange=e=>{formSel=e.target.value;drillQ=null;streakRun=0;viewForms();};
+  $("#mDrill").onclick=()=>{drillMode="drill";viewForms();};
+  $("#mStudy").onclick=()=>{drillMode="study";viewForms();};
+  $("#app").querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>answerQ(b.dataset.o));
+  const n=$("#next"); if(n){n.onclick=()=>{newQ();drillQ.poolId=p.drill;viewForms();};n.focus();}
+}
+function answerQ(o){
+  if(drillQ.answered)return;drillQ.answered=o;const ok=drillQ.valid.includes(o);
+  S.drill.total++;if(ok){S.drill.right++;streakRun++;}else streakRun=0;touchStreak();save();viewForms();
+}
+document.addEventListener("keydown",e=>{if(tab==="forms"&&e.key==="Enter"&&drillQ&&drillQ.answered){e.preventDefault();const p=PARADIGMS.find(x=>x.id===formSel);newQ();drillQ.poolId=p.drill;viewForms();}});
+
+/* =========================================================
+   READ — tap-to-parse reader
+   ========================================================= */
+let passSel="jn1",inter=false,showTr=false,selW=null;
+function viewRead(){
+  const P=PASSAGES.find(x=>x.id===passSel);
+  const verses=Object.entries(P.verses).map(([n,ws])=>`<div class="verse gk"><sup>${n}</sup>${ws.map((w,i)=>`<span class="w ${selW===n+"-"+i?"sel":""}" data-w="${n}-${i}">${esc(w[0])}<small>${esc(w[2])}</small></span>`).join(" ")}</div>
+    ${showTr?`<p class="muted small" style="margin-top:-4px">${esc(P.translation[n])}</p>`:""}`).join("");
+  let panel="";
+  if(selW){const [n,i]=selW.split("-");const w=P.verses[n][+i];
+    const inDeck=VOCAB.findIndex(v=>v[0].split(",")[0].trim()===w[1]);
+    panel=`<div class="card panel">
+      <div class="row" style="justify-content:space-between"><span class="gk" style="font-size:1.6rem">${esc(w[0].replace(/[.,·;]$/,""))}</span><button class="ghost small" id="say">🔊</button></div>
+      <div><b>Lexical form:</b> <span class="gk" style="font-size:1.15rem">${esc(w[1])}</span> · <b>Meaning:</b> ${esc(w[2])}</div>
+      <div><b>Parsing:</b> ${esc(w[3])}</div>
+      ${w[4]?`<p style="margin:8px 0 0" class="small">💡 ${esc(w[4])}</p>`:""}
+      <p class="muted small" style="margin:6px 0 0">${inDeck>=0?`Word #${inDeck+1} in your deck (×${VOCAB[inDeck][2]} in NT)`:"Not in the core deck: a lower-frequency word"}</p></div>`;
+  }
+  $("#app").innerHTML=`<h2>Read</h2>
+  <div class="row" style="margin-bottom:12px">
+    <select id="psel">${PASSAGES.map(x=>`<option value="${x.id}" ${x.id===passSel?"selected":""}>${x.title}</option>`).join("")}</select>
+    <button class="small ${inter?"on":""}" id="tInter">Interlinear</button>
+    <button class="small ${showTr?"on":""}" id="tTr">Translation</button></div>
+  <div class="card ${inter?"inter":""}">${verses}</div>
+  ${P.note?`<p class="muted small">📜 ${esc(P.note)}</p>`:""}
+  ${panel||`<p class="muted small">Tap any word to see how it's parsed. First pass: use the help. Second pass: turn off Interlinear and try to parse every word before you tap it.</p>`}`;
+  $("#psel").onchange=e=>{passSel=e.target.value;selW=null;viewRead();};
+  $("#tInter").onclick=()=>{inter=!inter;viewRead();};
+  $("#tTr").onclick=()=>{showTr=!showTr;viewRead();};
+  $("#app").querySelectorAll("[data-w]").forEach(s=>s.onclick=()=>{selW=s.dataset.w;viewRead();});
+  const sy=$("#say");if(sy)sy.onclick=()=>{const [n,i]=selW.split("-");speak(P.verses[n][+i][0]);};
+}
+
+/* =========================================================
+   ALPHABET
+   ========================================================= */
+let alphaQ=null;
+function viewAlpha(){
+  if(!alphaQ){const i=Math.floor(Math.random()*24);alphaQ={i,opts:shuffle([i,...shuffle([...Array(24).keys()].filter(x=>x!==i)).slice(0,3)]),ans:null};}
+  const a=alphaQ;
+  $("#app").innerHTML=`<h2>Alphabet & pronunciation</h2>
+  <div class="card flash"><div class="muted small">Which letter is this?</div><div class="big gk">${ALPHABET[a.i][0].split(" ").slice(1).join(" ")}</div>
+    <div class="opts">${a.opts.map(o=>`<button data-a="${o}" class="${a.ans!==null?(o===a.i?"right":(o===a.ans?"wrong":"")):""}">${ALPHABET[o][1]} (${ALPHABET[o][2]})</button>`).join("")}</div>
+    ${a.ans!==null?`<button class="primary" id="an" style="margin-top:14px">Next</button>`:""}</div>
+  <div class="letters">${ALPHABET.map(l=>`<div class="letter"><div class="gk">${l[0]}</div><b>${l[1]}</b><div class="small muted">${l[2]} — ${l[3]}</div></div>`).join("")}</div>
+  <h3>Diphthongs</h3><div class="letters">${DIPH.map(d=>`<div class="letter"><div class="gk">${d[0]}</div><div class="small muted">${d[1]} — ${d[2]}</div></div>`).join("")}</div>
+  <div class="card" style="margin-top:14px"><b>Marks</b>
+   <p><span class="gk" style="font-size:1.3rem">ἁ</span> rough breathing = an "h" sound (ἁμαρτία → <i>hamartia</i>). <span class="gk" style="font-size:1.3rem">ἀ</span> smooth breathing = no sound.</p>
+   <p><span class="gk" style="font-size:1.3rem">ᾳ ῃ ῳ</span> iota subscript: silent, but it often marks the <b>dative</b> (λόγῳ, ἀρχῇ). Watch for it.</p>
+   <p><span class="gk" style="font-size:1.3rem">ά ὰ ᾶ</span> accents mark the stressed syllable, and sometimes tell two words apart (τίς "who?" vs τις "someone").</p>
+   <p class="muted small">Pronunciation here is <b>Erasmian</b>, the standard academic system (and close to how you'd read it as a German or Italian speaker). The 🔊 button uses your device's modern Greek voice, which differs from it: η, ι, υ, ει, οι all sound like "i".</p></div>`;
+  $("#app").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{if(a.ans===null){a.ans=+b.dataset.a;viewAlpha();}});
+  const n=$("#an");if(n)n.onclick=()=>{alphaQ=null;viewAlpha();};
+}
+
+/* =========================================================
+   METHOD
+   ========================================================= */
+function viewMethod(){
+  $("#app").innerHTML=`<h2>The method</h2>
+  <div class="card"><p>There is no secret spy trick. What the US government language schools (the CIA's language school, the State Department's FSI, the military's DLI) do is <b>intensive, structured and relentless</b>: lots of time on task, the most useful material first, constant testing, and real texts early. This trainer copies that structure.</p></div>
+  <div class="card"><h3 style="margin-top:0">1 · Frequency first</h3><p>Around 310 words make up roughly 80% of the words in the NT text. Learn them in order of frequency and you can read real verses within weeks.</p>
+  <h3>2 · Spaced repetition</h3><p>Each card comes back just before you would forget it (1 → 2 → 4 → 8 → 16… days). Ten to fifteen minutes a day beats two hours on a Sunday.</p>
+  <h3>3 · Drill the forms until they're automatic</h3><p>Greek packs its meaning into word endings. Military schools drill these patterns until you recognise them without thinking. The Forms tab does that: recognising a form in under 2 seconds is the goal.</p>
+  <h3>4 · Read real text from day one</h3><p>Read real, understandable text with help. Start with John's Gospel and 1 John: they use the simplest vocabulary in the NT.</p>
+  <h3>5 · Say it out loud</h3><p>Read aloud, chant the charts, explain a verse to someone. Producing the language beats only recognising it.</p></div>
+  <div class="card"><h3 style="margin-top:0">A 12-week plan</h3>
+  <table><tr><th>Weeks</th><th>Focus</th><th>Milestone</th></tr>
+  <tr><td>1</td><td>Alphabet, pronunciation, article, words 1–60</td><td>Read John 1:1 aloud and parse it</td></tr>
+  <tr><td>2–3</td><td>2nd & 1st declension, εἰμί, present active, words 60–150</td><td>John 1:1–5 without help</td></tr>
+  <tr><td>4–5</td><td>3rd declension, pronouns, imperfect, future</td><td>1 John 1 with a reader's lexicon</td></tr>
+  <tr><td>6–8</td><td>Aorist (active/passive), middle voice, words 150–230</td><td>John 3:16 and 1 John 4 without help</td></tr>
+  <tr><td>9–12</td><td>Participles, subjunctive, infinitives</td><td>Read a chapter of John a week</td></tr></table>
+  <p class="muted small">After this you need a proper grammar for the rest of the forms (participle charts, μι-verbs, contract verbs).</p></div>
+  <div class="card"><h3 style="margin-top:0">Recommended companions</h3>
+  <p>• <b>Mounce, <i>Basics of Biblical Greek</i></b>: the standard grammar, and the frequency order used here.<br>
+  • <b>A reader's Greek New Testament</b> (rare words glossed at the foot of the page). This is your next step after the core vocabulary.<br>
+  • <b>SBLGNT or NA28</b> for the text itself. SBLGNT is free online.<br>
+  • <b>BDAG</b>, the standard lexicon, when one-line glosses aren't enough.</p></div>
+  <p class="muted small">Accuracy: the charts and parsings follow standard Koine grammar. The frequency counts are approximate and differ by a few occurrences between editions. If something looks off, check it against Mounce or BDAG.</p>`;
+}
+
+render();
+</script>
+</body>
+</html>
