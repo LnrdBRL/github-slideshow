@@ -271,14 +271,29 @@ function findVoice(){try{const vs=speechSynthesis.getVoices();greekVoice=vs.find
 try{findVoice();speechSynthesis.onvoiceschanged=findVoice;}catch(e){}
 function toast(html,ms=6000){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t);}
   t.innerHTML=html;t.className="show";clearTimeout(t._h);t._h=setTimeout(()=>t.className="",ms);}
+let _utt=null; // keep a reference: some browsers drop speech that gets garbage-collected
 function speak(text){
   const w=sayable(text);if(!w)return;
   if(!("speechSynthesis" in window)){toast("This browser can't play speech. Use the IPA guide under the word (ˈ marks the stressed syllable).");return;}
   if(!greekVoice)findVoice();
-  try{const u=new SpeechSynthesisUtterance(w);u.lang="el-GR";if(greekVoice)u.voice=greekVoice;u.rate=.75;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}
-  if(!greekVoice)setTimeout(()=>{if(!findVoice())toast("No Greek voice found on this device. <b>iPhone:</b> Settings → Accessibility → Spoken Content → Voices → Greek, then download one. <b>Android:</b> Settings → Text-to-speech → install Greek.",9000);},600);
+  const synth=window.speechSynthesis;
+  const u=new SpeechSynthesisUtterance(w);u.lang="el-GR";if(greekVoice)u.voice=greekVoice;u.rate=.75;u.volume=1;
+  let started=false;u.onstart=()=>{started=true;};
+  u.onerror=e=>{if(e.error!=="interrupted"&&e.error!=="canceled")toast("Speech failed ("+esc(e.error||"unknown")+"). "+NO_SOUND_HELP,9000);};
+  _utt=u;
+  try{
+    // Safari drops speech issued right after cancel(), so only cancel when something is playing.
+    if(synth.speaking||synth.pending){synth.cancel();setTimeout(()=>synth.speak(u),120);}
+    else synth.speak(u);
+    if(synth.paused)synth.resume();
+  }catch(e){toast("Speech failed. "+NO_SOUND_HELP,9000);return;}
+  setTimeout(()=>{
+    if(started)return;
+    if(!findVoice())toast("No Greek voice found on this device. <b>iPhone:</b> Settings → Accessibility → Spoken Content → Voices → Greek, then download one. <b>Android:</b> Settings → Text-to-speech → install Greek.",10000);
+    else toast("No sound played. "+NO_SOUND_HELP,10000);
+  },1800);
 }
-/* IPA, Erasmian values (as taught in the Alphabet tab) */
+const NO_SOUND_HELP="Check that the ringer switch on the side of your iPhone isn't on silent and the volume is up. In the preview inside claude.ai, sound may be blocked; it works on the website itself.";
 const PRON_V={α:"a",ε:"e",η:"eː",ι:"i",ο:"o",υ:"y",ω:"oː"};
 const PRON_D={αι:"ai̯",ει:"ei̯",οι:"oi̯",ου:"uː",αυ:"au̯",ευ:"eu̯",ηυ:"eːu̯",υι:"yi̯"};
 const PRON_C={β:"b",γ:"g",δ:"d",ζ:"dz",θ:"θ",κ:"k",λ:"l",μ:"m",ν:"n",ξ:"ks",π:"p",ρ:"r",σ:"s",ς:"s",τ:"t",φ:"f",χ:"x",ψ:"ps"};
