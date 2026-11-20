@@ -273,6 +273,9 @@ function toast(html,ms=6000){let t=document.getElementById("toast");if(!t){t=doc
   t.innerHTML=html;t.className="show";clearTimeout(t._h);t._h=setTimeout(()=>t.className="",ms);}
 let _utt=null; // keep a reference: some browsers drop speech that gets garbage-collected
 function speak(text){
+  try{speakInner(text);}catch(e){toast("Sound is blocked here ("+esc(e&&e.name||"error")+"). "+NO_SOUND_HELP,10000);}
+}
+function speakInner(text){
   const w=sayable(text);if(!w)return;
   if(!("speechSynthesis" in window)){toast("This browser can't play speech. Use the IPA guide under the word (ˈ marks the stressed syllable).");return;}
   if(!greekVoice)findVoice();
