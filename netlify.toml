@@ -1,4 +1,8 @@
-# Serve the Koine Greek trainer as static files from /docs (no build step).
+# Serve the Koine Greek trainer from /docs as static files.
+# base = "docs" makes Netlify start inside docs/, so it doesn't try to install
+# the old slideshow's Ruby/Node dependencies at the repo root.
+# publish is relative to base, so "." means docs/.
 [build]
-  publish = "docs"
+  base = "docs"
+  publish = "."
   command = "echo 'static site, no build'"
