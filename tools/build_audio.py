@@ -1,12 +1,15 @@
 """Generate docs/audio/<2 hex>/<16 hex>.mp3 for every line of list.tsv (hash <TAB> espeak phonemes).
 
-Usage: node tools/build_audio.mjs > list.tsv && python3 tools/build_audio.py list.tsv
+Usage: node tools/build_audio.mjs > list.tsv && python3 tools/build_audio.py list.tsv          (Greek)
+       node tools/build_audio_he.mjs > list_he.tsv && python3 tools/build_audio.py list_he.tsv he (Hebrew)
 Needs espeak-ng and ffmpeg. Resumable: existing files are skipped.
 """
 import sys, os, subprocess, tempfile
 from concurrent.futures import ThreadPoolExecutor
 
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "audio")
+HEB = len(sys.argv) > 2 and sys.argv[2] == "he"
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "docs", "audio", *(["he"] if HEB else []))
+VOICE = "de" if HEB else "grc"   # German voice has the sounds seminary Hebrew needs (x, ʃ, ʁ, ʔ, ts, ə)
 AF = ("silenceremove=start_periods=1:start_threshold=-50dB,areverse,"
       "silenceremove=start_periods=1:start_threshold=-50dB,areverse,apad=pad_dur=0.05")
 items = [l.rstrip("\n").split("\t") for l in open(sys.argv[1], encoding="utf-8") if l.strip()]
@@ -20,7 +23,7 @@ def batch(chunk):
         maps = []
         for i, (k, p) in enumerate(chunk):
             wav = os.path.join(tmp, f"{i}.wav")
-            subprocess.run(["espeak-ng", "-v", "grc", "-s", "125", "-w", wav, f"[[{p}]]"], check=True)
+            subprocess.run(["espeak-ng", "-v", VOICE, "-s", "125", "-w", wav, f"[[{p}]]"], check=True)
             cmd += ["-i", wav]
             maps += ["-map", str(i), "-af", AF, "-ac", "1", "-ar", "22050", "-b:a", "24k", "-c:a", "libmp3lame",
                      "-write_xing", "0", "-id3v2_version", "0", path(k) + ".tmp.mp3"]
