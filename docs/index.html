@@ -80,6 +80,12 @@ input[type=number],select,input[type=text]{font:inherit;padding:7px 10px;border-
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--line)}
 .dot.l1{background:var(--bad)}.dot.l2{background:var(--warn)}.dot.l3{background:var(--good)}
 .hide{display:none!important}
+.pron{color:var(--muted);font-size:.95rem;margin:2px 0 6px;letter-spacing:.03em}
+.pron b{color:var(--accent);font-weight:400;font-family:"Gentium Book Plus","Noto Serif","Times New Roman",serif}
+.ipa{color:var(--accent);font-family:"Gentium Book Plus","Noto Serif",serif;font-size:1.05rem}
+button.say{border-color:var(--accent);color:var(--accent);background:transparent;border-radius:50%;width:40px;height:40px;padding:0;font-size:1rem}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));max-width:560px;margin:0 auto;background:var(--card);border:1px solid var(--accent);border-radius:10px;padding:12px 14px;font-size:.95rem;z-index:20;opacity:0;pointer-events:none;transition:opacity .2s}
+#toast.show{opacity:1}
 .w.unk{text-decoration:underline dotted var(--accent);text-underline-offset:5px;color:var(--accent)}
 .sbox{margin-top:12px;padding:12px;border-radius:10px;background:var(--accent-soft)}
 a{color:var(--accent)}
@@ -256,7 +262,55 @@ const alphaKnown=()=>ALPHABET.filter((_,i)=>(S.alpha[i]||0)>=ALPHA_DONE).length;
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
-function speak(text){try{const u=new SpeechSynthesisUtterance(text.split(",")[0].replace(/[-()]/g,""));u.lang="el-GR";u.rate=.8;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}}
+/* ---------- Pronunciation ----------
+   Audio: the device's Greek voice (modern Greek pronunciation).
+   Written guide: Erasmian syllables, stressed syllable in capitals. */
+const sayable=t=>t.split(",")[0].replace(/[⸀⸁⸂⸃⸄⸅⟦⟧\[\]()\-.,·;’\d]/g,"").trim();
+let greekVoice=null;
+function findVoice(){try{const vs=speechSynthesis.getVoices();greekVoice=vs.find(v=>/^el/i.test(v.lang))||null;}catch(e){}return greekVoice;}
+try{findVoice();speechSynthesis.onvoiceschanged=findVoice;}catch(e){}
+function toast(html,ms=6000){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";document.body.appendChild(t);}
+  t.innerHTML=html;t.className="show";clearTimeout(t._h);t._h=setTimeout(()=>t.className="",ms);}
+function speak(text){
+  const w=sayable(text);if(!w)return;
+  if(!("speechSynthesis" in window)){toast("This browser can't play speech. Use the IPA guide under the word (ˈ marks the stressed syllable).");return;}
+  if(!greekVoice)findVoice();
+  try{const u=new SpeechSynthesisUtterance(w);u.lang="el-GR";if(greekVoice)u.voice=greekVoice;u.rate=.75;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){}
+  if(!greekVoice)setTimeout(()=>{if(!findVoice())toast("No Greek voice found on this device. <b>iPhone:</b> Settings → Accessibility → Spoken Content → Voices → Greek, then download one. <b>Android:</b> Settings → Text-to-speech → install Greek.",9000);},600);
+}
+/* IPA, Erasmian values (as taught in the Alphabet tab) */
+const PRON_V={α:"a",ε:"e",η:"eː",ι:"i",ο:"o",υ:"y",ω:"oː"};
+const PRON_D={αι:"ai̯",ει:"ei̯",οι:"oi̯",ου:"uː",αυ:"au̯",ευ:"eu̯",ηυ:"eːu̯",υι:"yi̯"};
+const PRON_C={β:"b",γ:"g",δ:"d",ζ:"dz",θ:"θ",κ:"k",λ:"l",μ:"m",ν:"n",ξ:"ks",π:"p",ρ:"r",σ:"s",ς:"s",τ:"t",φ:"f",χ:"x",ψ:"ps"};
+const ONSETS=new Set(["βλ","βρ","γλ","γρ","γν","δρ","θλ","θρ","θν","κλ","κρ","κν","κτ","πλ","πρ","πν","πτ","τρ","φλ","φρ","χλ","χρ","χθ","φθ","μν","σβ","σθ","σκ","σμ","σπ","στ","σφ","σχ","σκλ","στρ","σπλ","σκρ"]);
+function pron(word){
+  const d=sayable(word).normalize("NFD");if(!d)return "";
+  const ch=[];for(const c of d){if(/[\u0300-\u036f\u0342\u0345]/.test(c)){if(ch.length)ch[ch.length-1].m+=c;}else ch.push({c:c.toLowerCase(),m:""});}
+  const units=[];let rough=false;
+  for(let i=0;i<ch.length;i++){
+    const a=ch[i],b=ch[i+1];
+    if(a.m.includes("\u0314")&&a.c!=="ρ")rough=true;
+    if(b&&PRON_D[a.c+b.c]&&!b.m.includes("\u0308")){
+      if(b.m.includes("\u0314"))rough=true;
+      units.push({v:true,t:PRON_D[a.c+b.c],acc:/[\u0301\u0300\u0342]/.test(a.m+b.m),h:/\u0314/.test(a.m+b.m)});i++;continue;}
+    if(PRON_V[a.c])units.push({v:true,t:PRON_V[a.c],acc:/[\u0301\u0300\u0342]/.test(a.m),h:a.m.includes("\u0314")});
+    else if(PRON_C[a.c]){let t=PRON_C[a.c];if(a.c==="γ"&&b&&"γκξχ".includes(b.c))t="ŋ";units.push({v:false,g:a.c,t});}
+  }
+  const vi=units.map((u,i)=>u.v?i:-1).filter(i=>i>=0);if(!vi.length)return "/"+units.map(u=>u.t).join("")+"/";
+  const sylls=[];let start=0;
+  for(let k=0;k<vi.length;k++){
+    const end=k+1<vi.length?(()=>{const cl=units.slice(vi[k]+1,vi[k+1]);if(cl.length<=1)return vi[k]+1;
+      const g=cl.map(u=>u.g).join("");if(ONSETS.has(g))return vi[k]+1;
+      const rest=cl.slice(1).map(u=>u.g).join("");return vi[k]+2+(rest.length>1&&!ONSETS.has(rest)?rest.length-1:0);})():units.length;
+    sylls.push(units.slice(start,end));start=end;}
+  const parts=sylls.map(sy=>sy.map(u=>u.t).join(""));
+  if(rough)parts[0]="h"+parts[0];
+  const st=sylls.length>1?sylls.findIndex(sy=>sy.some(u=>u.acc)):-1;
+  return "/"+parts.map((t,i)=>(i===st?"ˈ":i>0?".":"")+t).join("")+"/";
+}
+function sayRow(form,size){return `<div class="row" style="align-items:center;gap:12px"><span class="gk" style="font-size:${size||"1.6rem"}">${esc(form)}</span>
+  <button class="say" data-say="${esc(form)}" aria-label="Play pronunciation">🔊</button></div>
+  <div class="pron"><b>${esc(pron(form))}</b></div>`;}
 async function getJSON(p){const r=await fetch(p);if(!r.ok)throw new Error(p+" "+r.status);return r.json();}
 async function loadStrongs(){if(!STRONGS){STRONGS=await getJSON("data/strongs.json");}return STRONGS;}
 const TABS=[["today","Today"],["alpha","Alphabet"],["vocab","Vocab"],["forms","Forms"],["read","Read"],["dict","Dictionary"],["method","Method"]];
@@ -274,6 +328,7 @@ function wordCard(lemma,extra){
   const status=!c?`<button class="small" data-add="${esc(lemma)}">+ Add to my reviews</button>`:`<span class="tag">${c.box>=3?"solid":"learning"} · in your reviews</span>`;
   return `${extra||""}
    <div class="row" style="justify-content:space-between;align-items:baseline"><span class="gk" style="font-size:1.5rem">${esc(r[1])}</span><span class="muted small">${esc(translit(lemma))}</span></div>
+   <div class="pron"><b>${esc(pron(lemma))}</b></div>
    <div style="margin:4px 0"><b>${esc(r[2]||"(no short gloss; see Strong's below)")}</b></div>
    <div class="muted small">${POSN[r[4]]||""} · ${r[3].toLocaleString()}× in NT · frequency rank #${i+1}</div>
    <div class="row" style="margin-top:8px">${status}<button class="ghost small" data-say="${esc(lemma)}">🔊</button></div>
@@ -358,7 +413,7 @@ function viewVocab(){
   }
   const i=LEXI[cur],v=LEX[i],c=S.cards[cur],isNew=!c||c.reps===0;
   const front=S.reverse?`<div class="gloss">${esc(v[2])}</div><div class="muted small" style="margin-top:6px">${POSN[v[4]]||""}</div>`:`<div class="big gk">${esc(v[1])}</div>`;
-  const back=S.reverse?`<div class="big gk" style="margin-top:14px">${esc(v[1])}</div><div class="muted">${esc(translit(v[0]))}</div>`:`<div class="gloss">${esc(v[2])}</div><div class="muted small">${esc(translit(v[0]))} · ${POSN[v[4]]||""}</div>`;
+  const back=S.reverse?`<div class="big gk" style="margin-top:14px">${esc(v[1])}</div><div class="pron"><b>${esc(pron(v[0]))}</b></div>`:`<div class="gloss">${esc(v[2])}</div><div class="pron"><b>${esc(pron(v[0]))}</b> · ${POSN[v[4]]||""}</div>`;
   $("#app").innerHTML=head+`
   <div class="card flash">
     <div class="row" style="justify-content:center;gap:6px;margin-bottom:14px">
@@ -523,7 +578,7 @@ function viewRead(){
       const [v,i]=s.dataset.w.split("-"),w=ch[v][+i],lem=LEX[w[1]][0];
       const pn=$("#panel");pn.className="card panel";
       pn.innerHTML=`<div class="row" style="justify-content:space-between"><span class="muted small">${bk[1]} ${c}:${v}</span><button class="ghost small" id="closeP">✕</button></div>
-        <div class="gk" style="font-size:1.6rem">${esc(cleanW(w[0]).replace(/[.,·;]+$/,""))}</div>
+        ${sayRow(cleanW(w[0]).replace(/[.,·;]+$/,""))}
         <div style="margin-bottom:10px"><b>Parsing:</b> ${esc(parseCode(w[2],lem))}</div>
         ${VMARK.test(w[0])?`<p class="small" style="margin:0 0 10px">📜 ${VMARK_NOTE}</p>`:""}
         <hr style="border:0;border-top:1px solid var(--line)">${wordCard(lem)}`;
@@ -537,7 +592,7 @@ function viewGuided(modeBar){
     ${showTr?`<p class="muted small" style="margin-top:-4px">${esc(P.translation[n])}</p>`:""}`).join("");
   let panel="";
   if(selW){const [n,i]=selW.split("-");const w=P.verses[n][+i];
-    panel=`<div class="card panel"><div class="gk" style="font-size:1.6rem">${esc(w[0].replace(/[.,·;]$/,""))}</div>
+    panel=`<div class="card panel">${sayRow(w[0].replace(/[.,·;]$/,""))}
       <div><b>Parsing:</b> ${esc(w[3])}</div><div><b>Here:</b> ${esc(w[2])}</div>
       ${w[4]?`<p style="margin:8px 0" class="small">💡 ${esc(w[4])}</p>`:""}
       <hr style="border:0;border-top:1px solid var(--line)">${wordCard(w[1])}</div>`;}
@@ -624,13 +679,13 @@ function viewAlpha(){
   <div class="row" style="margin-bottom:12px"><button class="small ${alphaMode==="letters"?"on":""}" id="aL">Letters</button><button class="small ${alphaMode==="words"?"on":""}" id="aW">Sound it out (real words)</button></div>
   <div class="card"><div class="row" style="justify-content:space-between"><b>${ak} / 24 letters learned</b><span class="muted small">${ak<24?`New letters unlock in groups of 6 as you learn them`:`Alphabet done ✓ Move on to Vocab`}</span></div><div class="bar" style="margin-top:8px"><i style="width:${ak/24*100}%"></i></div></div>
   <div class="card flash">${quiz}${a.ans!==null?`<button class="primary" id="an" style="margin-top:14px">Next</button>`:""}</div>
-  <div class="letters">${ALPHABET.map((l,i)=>`<div class="letter" style="${(S.alpha[i]||0)>=ALPHA_DONE?"border-color:var(--good)":""}"><div class="gk">${l[0]}</div><b>${l[1]}</b><div class="small muted">${l[2]} — ${l[3]}</div></div>`).join("")}</div>
-  <h3>Diphthongs</h3><div class="letters">${DIPH.map(d=>`<div class="letter"><div class="gk">${d[0]}</div><div class="small muted">${d[1]} — ${d[2]}</div></div>`).join("")}</div>
+  <div class="letters">${ALPHABET.map((l,i)=>`<div class="letter" style="${(S.alpha[i]||0)>=ALPHA_DONE?"border-color:var(--good)":""}"><div class="gk">${l[0]}</div><b>${l[1]}</b><div class="ipa">/${PRON_V[l[0].slice(-1)]||PRON_C[l[0].split(" ")[1][0]]}/</div><div class="small muted">${l[3]}</div></div>`).join("")}</div>
+  <h3>Diphthongs</h3><div class="letters">${DIPH.map(d=>`<div class="letter"><div class="gk">${d[0]}</div><div class="ipa">/${PRON_D[d[0].slice(0,2)]}/</div><div class="small muted">${d[2]}</div></div>`).join("")}</div>
   <div class="card" style="margin-top:14px"><b>Marks</b>
    <p><span class="gk" style="font-size:1.3rem">ἁ</span> rough breathing = an "h" sound (ἁμαρτία → <i>hamartia</i>). <span class="gk" style="font-size:1.3rem">ἀ</span> smooth breathing = no sound.</p>
    <p><span class="gk" style="font-size:1.3rem">ᾳ ῃ ῳ</span> iota subscript: silent, but it often marks the <b>dative</b> (λόγῳ, ἀρχῇ). Watch for it.</p>
    <p><span class="gk" style="font-size:1.3rem">ά ὰ ᾶ</span> accents mark the stressed syllable, and sometimes tell two words apart (τίς "who?" vs τις "someone").</p>
-   <p class="muted small">Pronunciation here is <b>Erasmian</b>, the standard academic system. The 🔊 button uses your device's modern Greek voice, which differs from it: η, ι, υ, ει, οι all sound like "i".</p></div>`;
+   <p class="muted small">Pronunciation here is <b>Erasmian</b>, the standard academic system. The 🔊 button uses your device's Greek voice, which speaks <b>modern</b> Greek: η, ι, υ, ει, οι all sound like "i", β sounds like "v", and δ like the "th" in "this". Use it for rhythm and stress, and follow the IPA guide (Erasmian) shown under each word for the sounds: <b>ˈ</b> comes before the stressed syllable, <b>.</b> separates syllables, and <b>ː</b> marks a long vowel.</p></div>`;
   $("#aL").onclick=()=>{alphaMode="letters";viewAlpha();};$("#aW").onclick=()=>{alphaMode="words";viewAlpha();};
   $("#app").querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{if(a.ans!==null)return;
     if(alphaMode==="letters"){a.ans=+b.dataset.a;S.alpha[a.i]=a.ans===a.i?(S.alpha[a.i]||0)+1:0;touchStreak();save();}
