@@ -428,7 +428,9 @@ function viewToday(){
   <div class="card"><b>Today's tasks</b>
     ${MISSION.map(([k,a,b])=>`<label class="check"><input type="checkbox" data-chk="${k}" ${ch[k]?"checked":""}><span><b>${a}</b><br><span class="muted small">${b}</span></span></label>`).join("")}
   </div>
-  <div class="row"><button class="primary" data-go="vocab">Start reviews →</button><span class="muted small">Form drill accuracy so far: ${acc}% (${S.drill.total} answers)</span></div>`;
+  <div class="row"><button class="primary" data-go="vocab">Start reviews →</button><span class="muted small">Form drill accuracy so far: ${acc}% (${S.drill.total} answers)</span></div>
+  <div id="syncCard" style="margin-top:14px"></div>`;
+  if(typeof paintSync==="function")paintSync();
   $("#app").querySelectorAll("[data-chk]").forEach(c=>c.onchange=()=>{(S.checks[t]=S.checks[t]||{})[c.dataset.chk]=c.checked;touchStreak();save();});
   $("#app").querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));
 }
@@ -781,6 +783,7 @@ async function boot(){
 
 </script>
 <script src="he.js"></script>
+<script src="sync.js"></script>
 <script src="he-app.js"></script>
 </body>
 </html>
