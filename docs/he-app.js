@@ -150,13 +150,14 @@ function heVerseHTML(ch,vs,cfg){
   return `<div class="verse hb" dir="rtl">${vs.map(v=>{
     const ws=ch[v]||[];let gap="";for(let k=prev+1;k<+v&&!cfg.guided;k++)gap+=`<sup>${k}</sup><span class="muted small">(—)</span> `;prev=+v;
     return gap+`<sup>${v}</sup>`+ws.map((w,i)=>{const m=mainLemma(w),unk=S.hl&&m&&!solid(m[0]);
-      return `<span class="w ${unk?"unk":""}" data-w="${v}-${i}">${esc(heShow(w[0]))}<small>${esc(m?short(m[2]):"")}</small></span>`;}).join(" ")}).join(" ")}</div>`;
+      return `<span class="w ${unk?"unk":""} ${gotCls(m&&m[0])}" data-w="${v}-${i}" data-l="${esc(m?m[0]:"")}">${esc(heShow(w[0]))}<small>${esc(m?short(m[2]):"")}</small></span>`;}).join(" ")}).join(" ")}</div>`;
 }
 function bindHePanel(container,ch,refOf,noteOf){
   const close=()=>{const o=document.getElementById("panel");if(o)o.remove();container.querySelectorAll(".sel").forEach(x=>x.classList.remove("sel"));};
   container.onclick=e=>{
     if(e.target.closest("#panel"))return;
     const s=e.target.closest("[data-w]");if(!s)return;
+    if(collecting){collectWord(s.dataset.l,s);return;}
     if(s.classList.contains("sel")){close();return;}
     close();const [v,i]=s.dataset.w.split("-"),w=ch[v][+i];
     const pn=document.createElement("div");pn.id="panel";pn.className="card panel";pn.dir="ltr";
@@ -169,17 +170,18 @@ function bindHePanel(container,ch,refOf,noteOf){
 function viewReadHe(){
   const modeBar=`<div class="row" style="margin-bottom:12px"><button class="small ${heMode==="nt"?"on":""}" id="mNT">Whole Old Testament</button><button class="small ${heMode==="guided"?"on":""}" id="mG">Guided passages</button></div>`;
   const toggles=`<button class="small ${inter?"on":""}" id="tInter">Interlinear</button>
-     <button class="small ${S.hl?"on":""}" id="tHl">Mark words I don't know</button>
-     <button class="small ${S.accents?"on":""}" id="tAcc">Accent marks</button>`;
+     <button class="small ${S.hl?"on":""}" id="tHl">Highlight unlearned</button>
+     <button class="small ${S.accents?"on":""}" id="tAcc">Accent marks</button>${colBtn()}`;
   const bindToggles=()=>{
     $("#tInter").onclick=()=>{inter=!inter;viewReadHe();};$("#tHl").onclick=()=>{S.hl=!S.hl;save();viewReadHe();};
-    $("#tAcc").onclick=()=>{S.accents=!S.accents;save();viewReadHe();};
+    $("#tAcc").onclick=()=>{S.accents=!S.accents;save();viewReadHe();};bindCol(viewReadHe);
     $("#mNT").onclick=()=>{heMode="nt";viewReadHe();};$("#mG").onclick=()=>{heMode="guided";viewReadHe();};};
   if(heMode==="guided"){
     const G=GUIDED_HE.find(x=>x.id===heGuide);
     $("#app").innerHTML=`<h2>Read</h2>${modeBar}
      <div class="row" style="margin-bottom:12px"><select id="gsel">${GUIDED_HE.map(x=>`<option value="${x.id}" ${x.id===heGuide?"selected":""}>${x.title}</option>`).join("")}</select>${toggles}
        <button class="small ${showTr?"on":""}" id="tTr">Translation</button></div>
+     ${colBar()}
      <div class="card ${inter?"inter":""}" id="text"><p class="muted">Loading…</p></div>
      <p class="muted small">These passages have hand-written notes on key words. Tap a word to see them.</p>`;
     bindToggles();$("#tTr").onclick=()=>{showTr=!showTr;viewReadHe();};
@@ -194,6 +196,7 @@ function viewReadHe(){
    <div class="row" style="margin-bottom:12px">
      <select id="bsel">${BOOKS.map(x=>`<option value="${x[0]}" ${x[0]===bk[0]?"selected":""}>${x[1]}</option>`).join("")}</select>
      <select id="csel">${Array.from({length:bk[2]},(_,i)=>`<option ${i+1===cc?"selected":""}>${i+1}</option>`).join("")}</select>${toggles}</div>
+   ${colBar()}
    <div class="card ${inter?"inter":""}" id="text"><p class="muted">Loading ${bk[1]} ${cc}…</p></div>
    <div class="row" style="justify-content:space-between"><button class="small" id="prev">← Previous</button><button class="small" id="nextc">Next →</button></div>
    <p class="muted small">Text: Westminster Leningrad Codex. Parsing: Open Scriptures Hebrew Bible. Hebrew reads right to left. Verse numbers follow the Hebrew Bible, which sometimes differs from English Bibles (psalm titles are verse 1; Malachi has 3 chapters). Tap any word for its parts, parsing and Strong's entry.</p>`;
@@ -306,7 +309,7 @@ async function setLang(l){
   LANG=l;const P=PACK[l];LG=P.lg;KEY=LG.key;S=load();if(LG.id==="he"&&S.accents===undefined)S.accents=false;
   PARADIGMS=P.data.PARADIGMS;PASSAGES=P.data.PASSAGES;ALPHABET=P.data.ALPHABET;DIPH=P.data.DIPH;pron=P.pron;
   queue=[];cur=null;revealed=false;vocabMode="study";listN=300;formSel=PARADIGMS[0].id;drillQ=null;streakRun=0;
-  alphaQ=null;heAlphaQ=null;dictQuery="";dictSel=null;selW=null;readMode="nt";heMode="nt";
+  alphaQ=null;heAlphaQ=null;collecting=false;collected=0;dictQuery="";dictSel=null;selW=null;readMode="nt";heMode="nt";
   document.documentElement.classList.toggle("he",l==="he");
   document.getElementById("brandName").textContent=P.brand;
   document.querySelectorAll("[data-lang]").forEach(b=>b.classList.toggle("on",b.dataset.lang===l));
