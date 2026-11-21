@@ -85,6 +85,8 @@ input[type=number],select,input[type=text]{font:inherit;padding:7px 10px;border-
 .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--line)}
 .dot.l1{background:var(--bad)}.dot.l2{background:var(--warn)}.dot.l3{background:var(--good)}
 .hide{display:none!important}
+.w.got{background:var(--accent-soft);box-shadow:inset 0 -2px 0 var(--accent)}
+.colbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;border:1px solid var(--accent);border-radius:10px;font-size:.92rem;background:var(--accent-soft)}
 /* Hebrew side: tekhelet blue accent */
 html.he{--accent:#6f9fe6;--accent-soft:#111b2c}
 .hb{font-family:"Noto Serif Hebrew","SBL Hebrew","Ezra SIL","Times New Roman",serif;direction:rtl;unicode-bidi:isolate}
@@ -399,7 +401,7 @@ const MISSION=[
  ["rev","Clear all due vocabulary reviews","Vocab tab. Do these first: they are what stops you forgetting."],
  ["new","Learn today's new words","Most frequent first. Say each one out loud."],
  ["form","Drill one form chart: 30 reps at 90% or better","Forms tab. Speed matters — aim for under 2 seconds per form."],
- ["read","Read one passage twice: once with help, once without","Read tab. Turn on 'Mark words I don't know' and parse them before you tap."],
+ ["read","Read one passage twice: once with help, once without","Read tab. Turn on 'Highlight unlearned' and parse those words before you tap them. Use 'Collect words' to send the ones you don't know to your reviews."],
  ["out","Read it aloud to someone, or record yourself","Producing the language sticks far better than only recognising it."]
 ];
 function viewToday(){
@@ -579,6 +581,23 @@ const VNOTES={
 };
 for(let k=1;k<=11;k++)VNOTES["Jn 8:"+k]=VNOTES["Jn 7:53"];
 const VMARK_NOTE="Textual variant: manuscripts differ at this word or phrase. The SBLGNT marks it with a sign in its apparatus (removed here for easier reading).";
+/* Collect mode: tap words you don't know and they go straight into your reviews */
+let collecting=false,collected=0;
+const colBtn=()=>`<button class="small ${collecting?"on":""}" id="tCol">${collecting?"✓ Collecting words":"Collect words"}</button>`;
+const colBar=()=>collecting?`<div class="colbar" id="colBar">${colBarText()}</div>`:"";
+const colBarText=()=>`<span><b>Tap the words you don't know.</b> Each one goes into your reviews (tap again to undo). ${collected?`<b>${collected}</b> added.`:""}</span>${collected?`<button class="small primary" id="colGo">Review them →</button>`:""}`;
+function paintColBar(){const b=document.getElementById("colBar");if(!b)return;b.innerHTML=colBarText();
+  const g=document.getElementById("colGo");if(g)g.onclick=()=>{collecting=false;queue=[];cur=null;vocabMode="study";go("vocab");};}
+function bindCol(rerender){const t=document.getElementById("tCol");if(t)t.onclick=()=>{collecting=!collecting;if(!collecting)collected=0;rerender();};paintColBar();}
+function collectWord(lem,span){
+  if(!lem||LEXI[lem]===undefined)return;
+  const c=S.cards[lem],all=[...document.querySelectorAll(".w[data-l]")].filter(x=>x.dataset.l===lem);
+  if(!c){addCard(lem);S.cards[lem].col=1;save();collected++;all.forEach(x=>x.classList.add("got"));}
+  else if(c.col&&!c.reps){delete S.cards[lem];save();collected=Math.max(0,collected-1);all.forEach(x=>x.classList.remove("got"));}
+  else{all.forEach(x=>{x.classList.add("got");});}
+  queue=[];cur=null;paintColBar();
+}
+const gotCls=lem=>collecting&&lem&&S.cards[lem]?"got":"";
 async function getBook(b){if(!BOOKDATA[b])BOOKDATA[b]=await getJSON(`${LG.dir}${b}.json`);return BOOKDATA[b];}
 function viewRead(){
   const modeBar=`<div class="row" style="margin-bottom:12px"><button class="small ${readMode==="nt"?"on":""}" id="mNT">Whole New Testament</button><button class="small ${readMode==="guided"?"on":""}" id="mG">Guided passages</button></div>`;
@@ -589,14 +608,15 @@ function viewRead(){
      <select id="bsel">${BOOKS.map(x=>`<option value="${x[0]}" ${x[0]===bk[0]?"selected":""}>${x[1]}</option>`).join("")}</select>
      <select id="csel">${Array.from({length:bk[2]},(_,i)=>`<option ${i+1===c?"selected":""}>${i+1}</option>`).join("")}</select>
      <button class="small ${inter?"on":""}" id="tInter">Interlinear</button>
-     <button class="small ${S.hl?"on":""}" id="tHl">Mark words I don't know</button></div>
+     <button class="small ${S.hl?"on":""}" id="tHl">Highlight unlearned</button>${colBtn()}</div>
+   ${colBar()}
    <div class="card ${inter?"inter":""}" id="text"><p class="muted">Loading ${bk[1]} ${c}…</p></div>
    <div class="row" style="justify-content:space-between"><button class="small" id="prev">← Previous</button><button class="small" id="nextc">Next →</button></div>
    <p class="muted small">Text: SBL Greek New Testament. Parsing: MorphGNT. Glosses: Dodson lexicon. Tap any word for its parsing and Strong's entry.</p>`;
   $("#bsel").onchange=e=>{S.pos={b:e.target.value,c:1};selW=null;save();viewRead();};
   $("#csel").onchange=e=>{S.pos.c=+e.target.value;selW=null;save();viewRead();};
   $("#tInter").onclick=()=>{inter=!inter;viewRead();};
-  $("#tHl").onclick=()=>{S.hl=!S.hl;save();viewRead();};
+  $("#tHl").onclick=()=>{S.hl=!S.hl;save();viewRead();};bindCol(viewRead);
   $("#mG").onclick=()=>{readMode="guided";selW=null;viewRead();};
   const step=d=>{let bi=BOOKS.findIndex(x=>x[0]===bk[0]),cc=c+d;if(cc<1){bi--;if(bi<0)return;cc=BOOKS[bi][2];}else if(cc>bk[2]){bi++;if(bi>=BOOKS.length)return;cc=1;}S.pos={b:BOOKS[bi][0],c:cc};selW=null;save();viewRead();window.scrollTo(0,0);};
   $("#prev").onclick=()=>step(-1);$("#nextc").onclick=()=>step(1);
@@ -608,7 +628,7 @@ function viewRead(){
       const vn=VNOTES[bk[0]+" "+c+":"+v]?`<sup class="vnote" data-vn="${bk[0]} ${c}:${v}">${v}ⓘ</sup>`:`<sup>${v}</sup>`;
       return pre+vn+ws.map((w,i)=>{
       const lem=LEX[w[1]][0],unk=S.hl&&!solid(lem);
-      return `<span class="w ${unk?"unk":""}" data-w="${v}-${i}">${esc(cleanW(w[0]))}<small>${esc(short(LEX[w[1]][2]))}</small></span>`;}).join(" ");}).join(" ")}${VNOTES[bk[0]+" "+c+":"+(prev+1)]?gap(prev+1):""}</div>`;
+      return `<span class="w ${unk?"unk":""} ${gotCls(lem)}" data-w="${v}-${i}" data-l="${esc(lem)}">${esc(cleanW(w[0]))}<small>${esc(short(LEX[w[1]][2]))}</small></span>`;}).join(" ");}).join(" ")}${VNOTES[bk[0]+" "+c+":"+(prev+1)]?gap(prev+1):""}</div>`;
     const closePanel=()=>{const o=document.getElementById("panel");if(o)o.remove();$("#text").querySelectorAll(".sel").forEach(x=>x.classList.remove("sel"));};
     const openPanel=(anchor,html)=>{closePanel();const pn=document.createElement("div");pn.id="panel";pn.className="card panel";pn.innerHTML=html;
       anchor.insertAdjacentElement("afterend",pn);pn.querySelector("#closeP").onclick=ev=>{ev.stopPropagation();closePanel();};return pn;};
@@ -618,6 +638,7 @@ function viewRead(){
       if(g){const key=g.dataset.vn||(bk[0]+" "+c+":"+g.dataset.gap);
         openPanel(g,`<div class="row" style="justify-content:space-between"><b>${bk[1]} ${key.split(" ").pop()}</b><button class="ghost small" id="closeP">✕</button></div><p class="small">${esc(VNOTES[key]||TR_NOTE)}</p>`);return;}
       const s=e.target.closest("[data-w]");if(!s)return;
+      if(collecting){collectWord(s.dataset.l,s);return;}
       if(s.classList.contains("sel")){closePanel();return;}
       const [v,i]=s.dataset.w.split("-"),w=ch[v][+i],lem=LEX[w[1]][0];
       const pn=openPanel(s,`<div class="row" style="justify-content:space-between"><span class="muted small">${bk[1]} ${c}:${v}</span><button class="ghost small" id="closeP">✕</button></div>
@@ -638,12 +659,13 @@ function viewGuided(modeBar){
       ${w[4]?`<p style="margin:8px 0" class="small">💡 ${esc(w[4])}</p>`:""}
       <hr style="border:0;border-top:1px solid var(--line)">${wordCard(w[1])}</div>`;}
   const selV=selW?selW.split("-")[0]:null;
-  const verses=Object.entries(P.verses).map(([n,ws])=>`<div class="verse gk"><sup>${n}</sup>${ws.map((w,i)=>`<span class="w ${selW===n+"-"+i?"sel":""}" data-w="${n}-${i}">${esc(w[0])}<small>${esc(w[2])}</small></span>`).join(" ")}</div>
+  const verses=Object.entries(P.verses).map(([n,ws])=>`<div class="verse gk"><sup>${n}</sup>${ws.map((w,i)=>`<span class="w ${selW===n+"-"+i?"sel":""} ${gotCls(w[1])}" data-w="${n}-${i}" data-l="${esc(w[1])}">${esc(w[0])}<small>${esc(w[2])}</small></span>`).join(" ")}</div>
     ${showTr?`<p class="muted small" style="margin-top:-4px">${esc(P.translation[n])}</p>`:""}${n===selV?panel:""}`).join("");
   $("#app").innerHTML=`<h2>Read</h2>${modeBar}
   <div class="row" style="margin-bottom:12px">
     <select id="psel">${PASSAGES.map(x=>`<option value="${x.id}" ${x.id===passSel?"selected":""}>${x.title}</option>`).join("")}</select>
-    <button class="small ${inter?"on":""}" id="tInter">Interlinear</button><button class="small ${showTr?"on":""}" id="tTr">Translation</button></div>
+    <button class="small ${inter?"on":""}" id="tInter">Interlinear</button><button class="small ${showTr?"on":""}" id="tTr">Translation</button>${colBtn()}</div>
+  ${colBar()}
   <div class="card ${inter?"inter":""}">${verses}</div>
   ${P.note?`<p class="muted small">📜 ${esc(P.note)}</p>`:""}
   ${panel?"":`<p class="muted small">These passages have hand-written grammar notes. Tap a word to see them.</p>`}`;
@@ -651,7 +673,8 @@ function viewGuided(modeBar){
   $("#psel").onchange=e=>{passSel=e.target.value;selW=null;viewRead();};
   $("#tInter").onclick=()=>{inter=!inter;viewRead();};
   $("#tTr").onclick=()=>{showTr=!showTr;viewRead();};
-  $("#app").querySelectorAll("[data-w]").forEach(s=>s.onclick=()=>{selW=selW===s.dataset.w?null:s.dataset.w;viewRead();});
+  bindCol(viewRead);
+  $("#app").querySelectorAll("[data-w]").forEach(s=>s.onclick=()=>{if(collecting){collectWord(s.dataset.l,s);return;}selW=selW===s.dataset.w?null:s.dataset.w;viewRead();});
   const pn=$("#app").querySelector(".panel");if(pn){hydrate(pn);$("#closeG").onclick=()=>{selW=null;viewRead();};}
 }
 
@@ -749,7 +772,7 @@ function viewMethod(){
   <h3>1 · Frequency first</h3><p>The top 100 words make up about two thirds of the words in the NT text, and the top 320 about 80%. Learn them in frequency order and you can read real verses within weeks.</p>
   <h3>2 · Spaced repetition</h3><p>Each card comes back just before you would forget it (1 → 2 → 4 → 8 → 16… days). Ten to fifteen minutes a day beats two hours on a Sunday.</p>
   <h3>3 · Drill the forms until they're automatic</h3><p>Greek packs its meaning into word endings. Military schools drill these patterns until you recognise them without thinking. Recognising a form in under 2 seconds is the goal.</p>
-  <h3>4 · Read real text from day one</h3><p>The whole NT is in the Read tab. Start with John's Gospel and 1 John: they use the simplest vocabulary in the NT. Turn on "Mark words I don't know" and watch the marked words thin out over the weeks.</p>
+  <h3>4 · Read real text from day one</h3><p>The whole NT is in the Read tab. Start with John's Gospel and 1 John: they use the simplest vocabulary in the NT. Turn on "Highlight unlearned" and watch the marked words thin out over the weeks.</p>
   <h3>5 · Say it out loud</h3><p>Read aloud, chant the charts, explain a verse to someone. Producing the language beats only recognising it.</p></div>
   <div class="card"><h3 style="margin-top:0">A 12-week plan</h3>
   <table><tr><th>Weeks</th><th>Focus</th><th>Milestone</th></tr>

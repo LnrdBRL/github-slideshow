@@ -39,7 +39,8 @@ def key(lem):
     return "H%04d%s" % (int(m.group(1)), m.group(2))
 
 # hand-written glosses where the brief lexicon's wording would confuse a learner
-HAND = {"H4210": ("מִזְמוֹר", "miz.mor", "psalm, song"),
+HAND = {"H7225": ("רֵאשִׁית", "re.shit", "beginning, first"),
+        "H4210": ("מִזְמוֹר", "miz.mor", "psalm, song"),
         "H0853": ("אֵת", "et", "(marks the definite direct object; not translated)"),
         "H3068": ("יְהוָה", "YHWH", "the LORD (God's personal name, YHWH; traditionally read aloud as Adonai)")}
 
